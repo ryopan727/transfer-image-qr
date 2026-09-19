@@ -40,7 +40,7 @@ public sealed class Form1Tests
                 CreatePng());
             var useCase = new StubAddImagesToDraftUseCase(new AddImagesToDraftResult([image], 1, []));
             using var form = new Form1();
-            var presenter = new MainPresenter(form, useCase);
+            var presenter = new MainPresenter(form, useCase, new StubEditDraftUseCase());
             form.AttachPresenter(presenter);
 
             presenter.AddDroppedFilesAsync([image.FilePath]).GetAwaiter().GetResult();
@@ -53,6 +53,56 @@ public sealed class Form1Tests
             Assert.Equal("Draft: 1枚", countLabel.Text);
             Assert.NotEmpty(item.ImageKey);
             Assert.True(imageList.Images.ContainsKey(item.ImageKey));
+        });
+    }
+
+    [Fact]
+    public void DraftActions_ReflectImageCountAndEditingState()
+    {
+        RunInSta(() =>
+        {
+            using var form = new Form1();
+            form.Show();
+            System.Windows.Forms.Application.DoEvents();
+
+            var clearButton = Assert.IsType<Button>(Assert.Single(form.Controls.Find("clearDraftButton", true)));
+            var createQrButton = Assert.IsType<Button>(Assert.Single(form.Controls.Find("createQrButton", true)));
+            Assert.False(clearButton.Enabled);
+            Assert.False(createQrButton.Enabled);
+
+            form.SetDraftActionsEnabled(true);
+            Assert.True(clearButton.Enabled);
+            Assert.True(createQrButton.Enabled);
+
+            form.SetDraftEditingEnabled(false);
+            Assert.False(clearButton.Enabled);
+            Assert.False(createQrButton.Enabled);
+            var dropPanel = Assert.IsType<Panel>(Assert.Single(form.Controls.Find("dropPanel", true)));
+            var instruction = Assert.IsType<Label>(Assert.Single(form.Controls.Find("dropInstructionLabel", true)));
+            Assert.False(dropPanel.AllowDrop);
+            Assert.Equal("転送中は画像を変更できません", instruction.Text);
+        });
+    }
+
+    [Fact]
+    public void RemoveAndClearDraftImages_UpdateListAndDisposeThumbnails()
+    {
+        RunInSta(() =>
+        {
+            var first = new DraftImageViewModel(Guid.NewGuid(), @"C:\images\first.jpg", "first.jpg", CreatePng());
+            var second = new DraftImageViewModel(Guid.NewGuid(), @"C:\images\second.png", "second.png", CreatePng());
+            using var form = new Form1();
+            form.AppendDraftImages([first, second]);
+
+            form.RemoveDraftImage(first.Id);
+
+            var draftList = Assert.IsType<ListView>(Assert.Single(form.Controls.Find("draftListView", true)));
+            Assert.Equal("second.png", Assert.Single(draftList.Items.Cast<ListViewItem>()).Text);
+            Assert.False(Assert.IsType<ImageList>(draftList.LargeImageList).Images.ContainsKey(first.Id.ToString("N")));
+
+            form.ClearDraftImages();
+            Assert.Empty(draftList.Items.Cast<ListViewItem>());
+            Assert.Empty(Assert.IsType<ImageList>(draftList.LargeImageList).Images.Cast<Image>());
         });
     }
 
@@ -113,5 +163,12 @@ public sealed class Form1Tests
             IReadOnlyCollection<string> filePaths,
             CancellationToken cancellationToken) =>
             Task.FromResult(result);
+    }
+
+    private sealed class StubEditDraftUseCase : IEditDraftUseCase
+    {
+        public DraftEditResult Remove(Guid imageId) => new(false, 0);
+
+        public DraftEditResult Clear() => new(false, 0);
     }
 }

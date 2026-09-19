@@ -49,4 +49,41 @@ public sealed class TransferDraftTests
         Assert.Null(image);
         Assert.Equal(20, draft.Images.Count);
     }
+
+    [Fact]
+    public void Remove_WithExistingImageId_RemovesOnlyTheSelectedImage()
+    {
+        var draft = new TransferDraft();
+        var first = draft.Add(@"C:\images\first.jpg");
+        var second = draft.Add(@"C:\images\second.png");
+
+        var removed = draft.Remove(first.Id);
+
+        Assert.True(removed);
+        Assert.Collection(draft.Images, image => Assert.Same(second, image));
+    }
+
+    [Fact]
+    public void Remove_WithUnknownImageId_LeavesDraftUnchanged()
+    {
+        var draft = new TransferDraft();
+        var image = draft.Add(@"C:\images\first.jpg");
+
+        var removed = draft.Remove(Guid.NewGuid());
+
+        Assert.False(removed);
+        Assert.Collection(draft.Images, remaining => Assert.Same(image, remaining));
+    }
+
+    [Fact]
+    public void Clear_WithImages_RemovesEveryImage()
+    {
+        var draft = new TransferDraft();
+        draft.Add(@"C:\images\first.jpg");
+        draft.Add(@"C:\images\second.png");
+
+        draft.Clear();
+
+        Assert.Empty(draft.Images);
+    }
 }

@@ -5,6 +5,8 @@ namespace TransferImageQR
     public partial class Form1 : Form, IMainView
     {
         private MainPresenter? _presenter;
+        private bool _draftActionsEnabled;
+        private bool _draftEditingEnabled = true;
 
         public Form1()
         {
@@ -62,6 +64,52 @@ namespace TransferImageQR
             rejectionListBox.Visible = images.Count > 0;
         }
 
+        public void RemoveDraftImage(Guid imageId)
+        {
+            var imageKey = imageId.ToString("N");
+            var item = draftListView.Items[imageKey];
+            if (item is not null)
+            {
+                draftListView.Items.Remove(item);
+            }
+
+            var thumbnail = draftImageList.Images[imageKey];
+            draftImageList.Images.RemoveByKey(imageKey);
+            thumbnail?.Dispose();
+            emptyDraftLabel.Visible = draftListView.Items.Count == 0;
+            UpdateDraftButtonState();
+        }
+
+        public void ClearDraftImages()
+        {
+            draftListView.Items.Clear();
+            while (draftImageList.Images.Count > 0)
+            {
+                var thumbnail = draftImageList.Images[0];
+                draftImageList.Images.RemoveAt(0);
+                thumbnail.Dispose();
+            }
+
+            emptyDraftLabel.Visible = true;
+            UpdateDraftButtonState();
+        }
+
+        public void SetDraftActionsEnabled(bool enabled)
+        {
+            _draftActionsEnabled = enabled;
+            UpdateDraftButtonState();
+        }
+
+        public void SetDraftEditingEnabled(bool enabled)
+        {
+            _draftEditingEnabled = enabled;
+            dropPanel.AllowDrop = enabled;
+            dropInstructionLabel.Text = enabled
+                ? "画像をここにドロップ"
+                : "転送中は画像を変更できません";
+            UpdateDraftButtonState();
+        }
+
         private void DropPanel_DragEnter(object? sender, DragEventArgs e)
         {
             e.Effect = _presenter is not null && e.Data?.GetDataPresent(DataFormats.FileDrop) == true
@@ -78,6 +126,34 @@ namespace TransferImageQR
             }
 
             await _presenter.AddDroppedFilesAsync(filePaths);
+        }
+
+        private void DraftListView_SelectedIndexChanged(object? sender, EventArgs e) =>
+            UpdateDraftButtonState();
+
+        private void RemoveDraftImageButton_Click(object? sender, EventArgs e)
+        {
+            if (_presenter is null || draftListView.SelectedItems.Count != 1)
+            {
+                return;
+            }
+
+            var imageKey = draftListView.SelectedItems[0].Name;
+            if (Guid.TryParseExact(imageKey, "N", out var imageId))
+            {
+                _presenter.RemoveDraftImage(imageId);
+            }
+        }
+
+        private void ClearDraftButton_Click(object? sender, EventArgs e) =>
+            _presenter?.ClearDraft();
+
+        private void UpdateDraftButtonState()
+        {
+            var canEditDraft = _draftEditingEnabled && _draftActionsEnabled;
+            removeDraftImageButton.Enabled = canEditDraft && draftListView.SelectedItems.Count == 1;
+            clearDraftButton.Enabled = canEditDraft;
+            createQrButton.Enabled = canEditDraft;
         }
     }
 }

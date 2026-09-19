@@ -30,4 +30,12 @@ public sealed class TransferDraft
         _images.Add(image);
         return true;
     }
+
+    public bool Remove(Guid imageId)
+    {
+        var image = _images.Find(candidate => candidate.Id == imageId);
+        return image is not null && _images.Remove(image);
+    }
+
+    public void Clear() => _images.Clear();
 }

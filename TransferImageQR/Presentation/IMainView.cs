@@ -9,4 +9,12 @@ public interface IMainView
     void SetDropEnabled(bool enabled);
 
     void DisplayRejectedImages(IReadOnlyCollection<RejectedImageViewModel> images);
+
+    void RemoveDraftImage(Guid imageId);
+
+    void ClearDraftImages();
+
+    void SetDraftActionsEnabled(bool enabled);
+
+    void SetDraftEditingEnabled(bool enabled);
 }
