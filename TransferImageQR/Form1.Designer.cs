@@ -13,9 +13,10 @@ namespace TransferImageQR
         /// <param name="disposing">true if managed resources should be disposed; otherwise, false.</param>
         protected override void Dispose(bool disposing)
         {
-            if (disposing && (components != null))
+            if (disposing)
             {
-                components.Dispose();
+                qrPictureBox?.Image?.Dispose();
+                components?.Dispose();
             }
             base.Dispose(disposing);
         }
@@ -46,7 +47,14 @@ namespace TransferImageQR
             sessionStateLabel = new Label();
             newTransferButton = new Button();
             sessionStateTimer = new System.Windows.Forms.Timer(components);
+            qrPanel = new Panel();
+            qrInstructionLabel = new Label();
+            transferUrlTextBox = new TextBox();
+            qrStatusLabel = new Label();
+            qrPictureBox = new PictureBox();
             dropPanel.SuspendLayout();
+            qrPanel.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)qrPictureBox).BeginInit();
             SuspendLayout();
             //
             // headingLabel
@@ -183,6 +191,63 @@ namespace TransferImageQR
             sessionStateTimer.Interval = 1000;
             sessionStateTimer.Tick += SessionStateTimer_Tick;
             //
+            // qrPanel
+            //
+            qrPanel.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+            qrPanel.BackColor = Color.White;
+            qrPanel.BorderStyle = BorderStyle.FixedSingle;
+            qrPanel.Controls.Add(qrInstructionLabel);
+            qrPanel.Controls.Add(transferUrlTextBox);
+            qrPanel.Controls.Add(qrStatusLabel);
+            qrPanel.Controls.Add(qrPictureBox);
+            qrPanel.Location = new Point(36, 310);
+            qrPanel.Name = "qrPanel";
+            qrPanel.Size = new Size(828, 294);
+            qrPanel.TabIndex = 9;
+            qrPanel.Visible = false;
+            //
+            // qrPictureBox
+            //
+            qrPictureBox.AccessibleName = "転送用QRコード";
+            qrPictureBox.BackColor = Color.White;
+            qrPictureBox.Location = new Point(20, 20);
+            qrPictureBox.Name = "qrPictureBox";
+            qrPictureBox.Size = new Size(252, 252);
+            qrPictureBox.SizeMode = PictureBoxSizeMode.Zoom;
+            qrPictureBox.TabIndex = 0;
+            qrPictureBox.TabStop = false;
+            //
+            // qrInstructionLabel
+            //
+            qrInstructionLabel.AutoSize = true;
+            qrInstructionLabel.Font = new Font("Segoe UI", 13F, FontStyle.Bold, GraphicsUnit.Point);
+            qrInstructionLabel.Location = new Point(304, 52);
+            qrInstructionLabel.Name = "qrInstructionLabel";
+            qrInstructionLabel.Size = new Size(369, 25);
+            qrInstructionLabel.TabIndex = 1;
+            qrInstructionLabel.Text = "iPhoneの標準カメラで読み取ってください";
+            //
+            // transferUrlTextBox
+            //
+            transferUrlTextBox.AccessibleName = "転送URL";
+            transferUrlTextBox.Location = new Point(304, 94);
+            transferUrlTextBox.Name = "transferUrlTextBox";
+            transferUrlTextBox.ReadOnly = true;
+            transferUrlTextBox.Size = new Size(492, 23);
+            transferUrlTextBox.TabIndex = 2;
+            //
+            // qrStatusLabel
+            //
+            qrStatusLabel.AutoSize = true;
+            qrStatusLabel.Font = new Font("Segoe UI", 11F, FontStyle.Bold, GraphicsUnit.Point);
+            qrStatusLabel.ForeColor = Color.Firebrick;
+            qrStatusLabel.Location = new Point(304, 141);
+            qrStatusLabel.Name = "qrStatusLabel";
+            qrStatusLabel.Size = new Size(282, 20);
+            qrStatusLabel.TabIndex = 3;
+            qrStatusLabel.Text = "LAN用IPv4アドレスを取得できません。";
+            qrStatusLabel.Visible = false;
+            //
             // draftListView
             //
             draftListView.AccessibleName = "Draft画像一覧";
@@ -258,6 +323,7 @@ namespace TransferImageQR
             Controls.Add(removeDraftImageButton);
             Controls.Add(emptyDraftLabel);
             Controls.Add(draftListView);
+            Controls.Add(qrPanel);
             Controls.Add(draftCountLabel);
             Controls.Add(dropPanel);
             Controls.Add(statusLabel);
@@ -269,6 +335,9 @@ namespace TransferImageQR
             Text = "TransferImageQR";
             dropPanel.ResumeLayout(false);
             dropPanel.PerformLayout();
+            qrPanel.ResumeLayout(false);
+            qrPanel.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)qrPictureBox).EndInit();
             ResumeLayout(false);
             PerformLayout();
             emptyDraftLabel.BringToFront();
@@ -293,5 +362,10 @@ namespace TransferImageQR
         private Label sessionStateLabel;
         private Button newTransferButton;
         private System.Windows.Forms.Timer sessionStateTimer;
+        private Panel qrPanel;
+        private PictureBox qrPictureBox;
+        private Label qrInstructionLabel;
+        private TextBox transferUrlTextBox;
+        private Label qrStatusLabel;
     }
 }

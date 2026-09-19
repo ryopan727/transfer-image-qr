@@ -6,6 +6,9 @@ using TransferImageQR.Infrastructure.Security;
 using TransferImageQR.Infrastructure.Http;
 using TransferImageQR.Application.Sessions;
 using TransferImageQR.Presentation;
+using TransferImageQR.Application.Transfers;
+using TransferImageQR.Infrastructure.Networking;
+using TransferImageQR.Infrastructure.QrCodes;
 
 namespace TransferImageQR
 {
@@ -33,11 +36,22 @@ namespace TransferImageQR
                 TimeProvider.System);
             var httpServer = new LanImageHttpServer(transferSession);
             httpServer.StartAsync().GetAwaiter().GetResult();
+            var transferUrlProvider = new TransferUrlProvider(
+                httpServer,
+                new SystemLanAddressProvider());
+            var transferQrCode = new TransferQrCodeService(
+                transferUrlProvider,
+                new QrCoderPngGenerator());
 
             try
             {
                 using var mainForm = new Form1();
-                var presenter = new MainPresenter(mainForm, addImagesToDraft, editDraft, transferSession);
+                var presenter = new MainPresenter(
+                    mainForm,
+                    addImagesToDraft,
+                    editDraft,
+                    transferSession,
+                    transferQrCode);
                 mainForm.AttachPresenter(presenter);
                 System.Windows.Forms.Application.Run(mainForm);
             }

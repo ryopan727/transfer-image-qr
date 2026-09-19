@@ -7,12 +7,13 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using TransferImageQR.Application.Sessions;
 using TransferImageQR.Domain.Sessions;
+using TransferImageQR.Application.Transfers;
 
 namespace TransferImageQR.Infrastructure.Http;
 
 public sealed class LanImageHttpServer(
     IActiveTransferSessionProvider sessionProvider,
-    int requestedPort = 0) : IAsyncDisposable
+    int requestedPort = 0) : IAsyncDisposable, IHttpServerEndpoint
 {
     private readonly SemaphoreSlim _lifecycleGate = new(1, 1);
     private WebApplication? _application;

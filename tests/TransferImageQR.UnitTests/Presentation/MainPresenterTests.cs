@@ -1,5 +1,6 @@
 using TransferImageQR.Application.Drafts;
 using TransferImageQR.Application.Sessions;
+using TransferImageQR.Application.Transfers;
 using TransferImageQR.Domain.Drafts;
 using TransferImageQR.Domain.Sessions;
 using TransferImageQR.Presentation;
@@ -21,7 +22,7 @@ public sealed class MainPresenterTests
                 2,
                 []));
         var view = new FakeMainView();
-        var sut = new MainPresenter(view, useCase, new StubEditDraftUseCase(), new StubTransferSessionUseCase());
+        var sut = CreatePresenter(view, useCase, new StubEditDraftUseCase(), new StubTransferSessionUseCase());
 
         await sut.AddDroppedFilesAsync(
             [@"C:\images\one.jpg", @"C:\images\two.png"],
@@ -48,7 +49,7 @@ public sealed class MainPresenterTests
                 3,
                 []));
         var view = new FakeMainView();
-        var sut = new MainPresenter(view, useCase, new StubEditDraftUseCase(), new StubTransferSessionUseCase());
+        var sut = CreatePresenter(view, useCase, new StubEditDraftUseCase(), new StubTransferSessionUseCase());
 
         await sut.AddDroppedFilesAsync([@"C:\images\one.jpg"], TestContext.Current.CancellationToken);
         await sut.AddDroppedFilesAsync(
@@ -73,7 +74,7 @@ public sealed class MainPresenterTests
         var rejection = new RejectedDraftImage(@"C:\images\invalid.jpg", "invalid.jpg", reason);
         var useCase = new StubAddImagesToDraftUseCase(new AddImagesToDraftResult([], 0, [rejection]));
         var view = new FakeMainView();
-        var sut = new MainPresenter(view, useCase, new StubEditDraftUseCase(), new StubTransferSessionUseCase());
+        var sut = CreatePresenter(view, useCase, new StubEditDraftUseCase(), new StubTransferSessionUseCase());
 
         await sut.AddDroppedFilesAsync([rejection.FilePath], TestContext.Current.CancellationToken);
 
@@ -94,7 +95,7 @@ public sealed class MainPresenterTests
         var editUseCase = new StubEditDraftUseCase(
             removeResult: new DraftEditResult(true, 0));
         var view = new FakeMainView();
-        var sut = new MainPresenter(view, addUseCase, editUseCase, new StubTransferSessionUseCase());
+        var sut = CreatePresenter(view, addUseCase, editUseCase, new StubTransferSessionUseCase());
         await sut.AddDroppedFilesAsync([@"C:\images\one.jpg"], TestContext.Current.CancellationToken);
 
         sut.RemoveDraftImage(imageId);
@@ -115,7 +116,7 @@ public sealed class MainPresenterTests
                 []));
         var editUseCase = new StubEditDraftUseCase(clearResult: new DraftEditResult(true, 0));
         var view = new FakeMainView();
-        var sut = new MainPresenter(view, addUseCase, editUseCase, new StubTransferSessionUseCase());
+        var sut = CreatePresenter(view, addUseCase, editUseCase, new StubTransferSessionUseCase());
         await sut.AddDroppedFilesAsync([@"C:\images\one.jpg"], TestContext.Current.CancellationToken);
 
         sut.ClearDraft();
@@ -130,7 +131,7 @@ public sealed class MainPresenterTests
     public void SetDraftEditingEnabled_WhenDisabled_DisablesDropAndDraftActions()
     {
         var view = new FakeMainView();
-        var sut = new MainPresenter(
+        var sut = CreatePresenter(
             view,
             new StubAddImagesToDraftUseCase(),
             new StubEditDraftUseCase(),
@@ -151,7 +152,7 @@ public sealed class MainPresenterTests
             removeResult: new DraftEditResult(true, 0),
             clearResult: new DraftEditResult(true, 0));
         var view = new FakeMainView();
-        var sut = new MainPresenter(view, addUseCase, editUseCase, new StubTransferSessionUseCase());
+        var sut = CreatePresenter(view, addUseCase, editUseCase, new StubTransferSessionUseCase());
         sut.SetDraftEditingEnabled(false);
 
         await sut.AddDroppedFilesAsync([@"C:\images\blocked.jpg"], TestContext.Current.CancellationToken);
@@ -173,11 +174,16 @@ public sealed class MainPresenterTests
             createResult: CreateSuccessfulSession(),
             status: new TransferSessionStatus(TransferSessionState.Active, expiresAt));
         var view = new FakeMainView();
-        var sut = new MainPresenter(
+        var qrCode = new TransferQrCode(
+            new Uri("http://192.168.1.20:51846/transfer/token"),
+            [1, 2, 3]);
+        var qrCodeService = new StubTransferQrCodeService(qrCode);
+        var sut = CreatePresenter(
             view,
             new StubAddImagesToDraftUseCase(),
             new StubEditDraftUseCase(),
-            sessionUseCase);
+            sessionUseCase,
+            qrCodeService);
 
         sut.CreateTransferSession();
 
@@ -186,6 +192,9 @@ public sealed class MainPresenterTests
         Assert.NotNull(view.TransferSession);
         Assert.False(view.TransferSession.IsExpired);
         Assert.Equal(expiresAt, view.TransferSession.ExpiresAt);
+        Assert.Equal("token", qrCodeService.SessionToken);
+        Assert.Equal(qrCode.Url.AbsoluteUri, view.TransferSession.TransferUrl);
+        Assert.Equal(qrCode.PngBytes, view.TransferSession.QrCodePng);
     }
 
     [Fact]
@@ -197,7 +206,7 @@ public sealed class MainPresenterTests
             status: new TransferSessionStatus(
                 TransferSessionState.Active,
                 new DateTimeOffset(2026, 9, 20, 12, 5, 0, TimeSpan.Zero)));
-        var sut = new MainPresenter(
+        var sut = CreatePresenter(
             new FakeMainView(),
             addUseCase,
             new StubEditDraftUseCase(),
@@ -220,7 +229,7 @@ public sealed class MainPresenterTests
         var sessionUseCase = new StubTransferSessionUseCase(
             status: new TransferSessionStatus(TransferSessionState.Expired, expiresAt));
         var view = new FakeMainView();
-        var sut = new MainPresenter(
+        var sut = CreatePresenter(
             view,
             new StubAddImagesToDraftUseCase(),
             new StubEditDraftUseCase(),
@@ -236,7 +245,7 @@ public sealed class MainPresenterTests
     {
         var sessionUseCase = new StubTransferSessionUseCase();
         var view = new FakeMainView();
-        var sut = new MainPresenter(
+        var sut = CreatePresenter(
             view,
             new StubAddImagesToDraftUseCase(),
             new StubEditDraftUseCase(),
@@ -263,6 +272,19 @@ public sealed class MainPresenterTests
                 draft.Images,
                 new DateTimeOffset(2026, 9, 20, 12, 0, 0, TimeSpan.Zero)));
     }
+
+    private static MainPresenter CreatePresenter(
+        IMainView view,
+        IAddImagesToDraftUseCase addUseCase,
+        IEditDraftUseCase editUseCase,
+        ITransferSessionUseCase sessionUseCase,
+        ITransferQrCodeService? qrCodeService = null) =>
+        new(
+            view,
+            addUseCase,
+            editUseCase,
+            sessionUseCase,
+            qrCodeService ?? new StubTransferQrCodeService());
 
     private sealed class StubAddImagesToDraftUseCase(params AddImagesToDraftResult[] results)
         : IAddImagesToDraftUseCase
@@ -366,5 +388,17 @@ public sealed class MainPresenterTests
         public TransferSessionStatus? GetCurrentStatus() => status;
 
         public void StartNewTransfer() => StartNewTransferCalled = true;
+    }
+
+    private sealed class StubTransferQrCodeService(TransferQrCode? result = null)
+        : ITransferQrCodeService
+    {
+        public string? SessionToken { get; private set; }
+
+        public TransferQrCode? Create(string sessionToken)
+        {
+            SessionToken = sessionToken;
+            return result;
+        }
     }
 }
