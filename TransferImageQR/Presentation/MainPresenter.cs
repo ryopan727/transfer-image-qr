@@ -1,11 +1,14 @@
 using TransferImageQR.Application.Drafts;
+using TransferImageQR.Application.Sessions;
+using TransferImageQR.Domain.Sessions;
 
 namespace TransferImageQR.Presentation;
 
 public sealed class MainPresenter(
     IMainView view,
     IAddImagesToDraftUseCase addImagesToDraftUseCase,
-    IEditDraftUseCase editDraftUseCase)
+    IEditDraftUseCase editDraftUseCase,
+    ITransferSessionUseCase transferSessionUseCase)
 {
     private bool _isAdding;
     private bool _isEditingEnabled = true;
@@ -22,6 +25,7 @@ public sealed class MainPresenter(
 
         _isAdding = true;
         view.SetDropEnabled(false);
+        view.SetDraftActionsEnabled(false);
 
         try
         {
@@ -50,12 +54,13 @@ public sealed class MainPresenter(
         {
             _isAdding = false;
             view.SetDropEnabled(_isEditingEnabled);
+            view.SetDraftActionsEnabled(_isEditingEnabled && _draftCount > 0);
         }
     }
 
     public void RemoveDraftImage(Guid imageId)
     {
-        if (!_isEditingEnabled)
+        if (!_isEditingEnabled || _isAdding)
         {
             return;
         }
@@ -71,7 +76,7 @@ public sealed class MainPresenter(
 
     public void ClearDraft()
     {
-        if (!_isEditingEnabled)
+        if (!_isEditingEnabled || _isAdding)
         {
             return;
         }
@@ -89,8 +94,54 @@ public sealed class MainPresenter(
     {
         _isEditingEnabled = enabled;
         view.SetDropEnabled(enabled && !_isAdding);
-        view.SetDraftActionsEnabled(enabled && _draftCount > 0);
+        view.SetDraftActionsEnabled(enabled && !_isAdding && _draftCount > 0);
         view.SetDraftEditingEnabled(enabled);
+    }
+
+    public void CreateTransferSession()
+    {
+        if (!_isEditingEnabled || _isAdding)
+        {
+            return;
+        }
+
+        var result = transferSessionUseCase.Create();
+        if (!result.Success)
+        {
+            return;
+        }
+
+        SetDraftEditingEnabled(false);
+        RefreshTransferSessionState();
+    }
+
+    public void RefreshTransferSessionState()
+    {
+        var status = transferSessionUseCase.GetCurrentStatus();
+        if (status is null)
+        {
+            view.DisplayDraftState();
+            return;
+        }
+
+        view.DisplayTransferSession(new TransferSessionViewModel(
+            status.State == TransferSessionState.Expired,
+            status.ExpiresAt));
+    }
+
+    public void StartNewTransfer()
+    {
+        if (_isAdding)
+        {
+            return;
+        }
+
+        transferSessionUseCase.StartNewTransfer();
+        view.ClearDraftImages();
+        view.DisplayRejectedImages([]);
+        UpdateDraftState(0);
+        SetDraftEditingEnabled(true);
+        view.DisplayDraftState();
     }
 
     private void UpdateDraftState(int count)
@@ -108,6 +159,7 @@ public sealed class MainPresenter(
             DraftImageRejectionReason.DraftLimitReached => "Draftは最大20枚です。",
             DraftImageRejectionReason.UnreadableImage => "画像を読み込めません。",
             DraftImageRejectionReason.FileFormatMismatch => "拡張子と画像形式が一致しません。",
+            DraftImageRejectionReason.DraftNotEditable => "転送中はDraftを変更できません。",
             _ => "画像を追加できません。",
         };
 }

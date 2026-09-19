@@ -110,6 +110,26 @@ namespace TransferImageQR
             UpdateDraftButtonState();
         }
 
+        public void DisplayTransferSession(TransferSessionViewModel session)
+        {
+            sessionStateLabel.Text = session.IsExpired
+                ? "状態: Expired（期限切れ）"
+                : $"状態: Active（有効期限 {session.ExpiresAt.ToLocalTime():HH:mm:ss}）";
+            createQrButton.Visible = false;
+            newTransferButton.Visible = true;
+            newTransferButton.Enabled = true;
+            sessionStateTimer.Enabled = !session.IsExpired;
+        }
+
+        public void DisplayDraftState()
+        {
+            sessionStateLabel.Text = "状態: Draft";
+            createQrButton.Visible = true;
+            newTransferButton.Visible = false;
+            newTransferButton.Enabled = false;
+            sessionStateTimer.Enabled = false;
+        }
+
         private void DropPanel_DragEnter(object? sender, DragEventArgs e)
         {
             e.Effect = _presenter is not null && e.Data?.GetDataPresent(DataFormats.FileDrop) == true
@@ -147,6 +167,15 @@ namespace TransferImageQR
 
         private void ClearDraftButton_Click(object? sender, EventArgs e) =>
             _presenter?.ClearDraft();
+
+        private void CreateQrButton_Click(object? sender, EventArgs e) =>
+            _presenter?.CreateTransferSession();
+
+        private void NewTransferButton_Click(object? sender, EventArgs e) =>
+            _presenter?.StartNewTransfer();
+
+        private void SessionStateTimer_Tick(object? sender, EventArgs e) =>
+            _presenter?.RefreshTransferSessionState();
 
         private void UpdateDraftButtonState()
         {

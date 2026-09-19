@@ -2,6 +2,8 @@ using TransferImageQR.Application.Drafts;
 using TransferImageQR.Domain.Drafts;
 using TransferImageQR.Infrastructure.Images;
 using TransferImageQR.Infrastructure.Files;
+using TransferImageQR.Infrastructure.Security;
+using TransferImageQR.Application.Sessions;
 using TransferImageQR.Presentation;
 
 namespace TransferImageQR
@@ -24,8 +26,12 @@ namespace TransferImageQR
                 thumbnailProvider,
                 fileMetadataProvider);
             var editDraft = new EditDraftUseCase(draft);
+            var transferSession = new TransferSessionUseCase(
+                draft,
+                new CryptographicSessionTokenGenerator(),
+                TimeProvider.System);
             using var mainForm = new Form1();
-            var presenter = new MainPresenter(mainForm, addImagesToDraft, editDraft);
+            var presenter = new MainPresenter(mainForm, addImagesToDraft, editDraft, transferSession);
             mainForm.AttachPresenter(presenter);
 
             System.Windows.Forms.Application.Run(mainForm);

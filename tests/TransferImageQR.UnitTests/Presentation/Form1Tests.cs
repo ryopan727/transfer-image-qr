@@ -2,6 +2,9 @@ using System.Runtime.ExceptionServices;
 using System.Windows.Forms;
 using SkiaSharp;
 using TransferImageQR.Application.Drafts;
+using TransferImageQR.Application.Sessions;
+using TransferImageQR.Domain.Drafts;
+using TransferImageQR.Domain.Sessions;
 using TransferImageQR.Presentation;
 using Xunit;
 
@@ -40,7 +43,11 @@ public sealed class Form1Tests
                 CreatePng());
             var useCase = new StubAddImagesToDraftUseCase(new AddImagesToDraftResult([image], 1, []));
             using var form = new Form1();
-            var presenter = new MainPresenter(form, useCase, new StubEditDraftUseCase());
+            var presenter = new MainPresenter(
+                form,
+                useCase,
+                new StubEditDraftUseCase(),
+                new StubTransferSessionUseCase());
             form.AttachPresenter(presenter);
 
             presenter.AddDroppedFilesAsync([image.FilePath]).GetAwaiter().GetResult();
@@ -107,6 +114,72 @@ public sealed class Form1Tests
     }
 
     [Fact]
+    public void TransferSessionState_ShowsActiveExpiredAndNewTransferActions()
+    {
+        RunInSta(() =>
+        {
+            using var form = new Form1();
+            form.Show();
+            System.Windows.Forms.Application.DoEvents();
+            var expiresAt = new DateTimeOffset(2026, 9, 20, 12, 5, 0, TimeSpan.Zero);
+
+            form.DisplayTransferSession(new TransferSessionViewModel(false, expiresAt));
+
+            var stateLabel = Assert.IsType<Label>(Assert.Single(form.Controls.Find("sessionStateLabel", true)));
+            var newTransferButton = Assert.IsType<Button>(Assert.Single(form.Controls.Find("newTransferButton", true)));
+            Assert.Contains("Active", stateLabel.Text);
+            Assert.True(newTransferButton.Visible);
+
+            form.DisplayTransferSession(new TransferSessionViewModel(true, expiresAt));
+            Assert.Contains("Expired", stateLabel.Text);
+
+            form.DisplayDraftState();
+            Assert.Equal("状態: Draft", stateLabel.Text);
+            Assert.False(newTransferButton.Visible);
+        });
+    }
+
+    [Fact]
+    public void SessionButtons_DelegateCreateAndStartNewTransferToPresenter()
+    {
+        RunInSta(() =>
+        {
+            var sessionUseCase = new StubTransferSessionUseCase(CreateSuccessfulSession());
+            using var form = new Form1();
+            var presenter = new MainPresenter(
+                form,
+                new StubAddImagesToDraftUseCase(new AddImagesToDraftResult([], 1, [])),
+                new StubEditDraftUseCase(),
+                sessionUseCase);
+            form.AttachPresenter(presenter);
+            form.Show();
+            form.SetDraftActionsEnabled(true);
+            System.Windows.Forms.Application.DoEvents();
+
+            var createButton = Assert.IsType<Button>(Assert.Single(form.Controls.Find("createQrButton", true)));
+            createButton.PerformClick();
+
+            Assert.True(sessionUseCase.CreateCalled);
+            var newTransferButton = Assert.IsType<Button>(Assert.Single(form.Controls.Find("newTransferButton", true)));
+            Assert.True(newTransferButton.Visible);
+            newTransferButton.PerformClick();
+            Assert.True(sessionUseCase.StartNewTransferCalled);
+        });
+    }
+
+    private static CreateTransferSessionResult CreateSuccessfulSession()
+    {
+        var draft = new TransferDraft();
+        draft.Add(@"C:\images\one.jpg");
+        return new CreateTransferSessionResult(
+            true,
+            new TransferImageQR.Domain.Sessions.TransferSession(
+                "token",
+                draft.Images,
+                new DateTimeOffset(2026, 9, 20, 12, 0, 0, TimeSpan.Zero)));
+    }
+
+    [Fact]
     public void RejectedImages_AreRenderedWithFileNameAndReason()
     {
         RunInSta(() =>
@@ -170,5 +243,28 @@ public sealed class Form1Tests
         public DraftEditResult Remove(Guid imageId) => new(false, 0);
 
         public DraftEditResult Clear() => new(false, 0);
+    }
+
+    private sealed class StubTransferSessionUseCase(
+        CreateTransferSessionResult? createResult = null) : ITransferSessionUseCase
+    {
+        public bool CreateCalled { get; private set; }
+        public bool StartNewTransferCalled { get; private set; }
+
+        public CreateTransferSessionResult Create()
+        {
+            CreateCalled = true;
+            return createResult ?? new(false, null);
+        }
+
+        public TransferImageQR.Domain.Sessions.TransferSession? GetCurrent() => createResult?.Session;
+
+        public TransferSessionStatus? GetCurrentStatus() => createResult?.Session is null
+            ? null
+            : new TransferSessionStatus(
+                TransferSessionState.Active,
+                createResult.Session.ExpiresAt);
+
+        public void StartNewTransfer() => StartNewTransferCalled = true;
     }
 }

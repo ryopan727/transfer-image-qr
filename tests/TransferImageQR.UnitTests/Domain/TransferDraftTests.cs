@@ -86,4 +86,34 @@ public sealed class TransferDraftTests
 
         Assert.Empty(draft.Images);
     }
+
+    [Fact]
+    public void Confirm_WithImages_PreventsFurtherEditing()
+    {
+        var draft = new TransferDraft();
+        var image = draft.Add(@"C:\images\confirmed.jpg");
+
+        var confirmed = draft.Confirm();
+
+        Assert.True(confirmed);
+        Assert.False(draft.IsEditable);
+        Assert.False(draft.TryAdd(@"C:\images\blocked.png", out _));
+        Assert.False(draft.Remove(image.Id));
+        Assert.False(draft.Clear());
+        Assert.Collection(draft.Images, remaining => Assert.Same(image, remaining));
+    }
+
+    [Fact]
+    public void Reset_AfterConfirmation_ReturnsToEmptyEditableDraft()
+    {
+        var draft = new TransferDraft();
+        draft.Add(@"C:\images\confirmed.jpg");
+        draft.Confirm();
+
+        draft.Reset();
+
+        Assert.True(draft.IsEditable);
+        Assert.Empty(draft.Images);
+        Assert.True(draft.TryAdd(@"C:\images\new.jpg", out _));
+    }
 }

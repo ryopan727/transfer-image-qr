@@ -12,4 +12,5 @@ public enum DraftImageRejectionReason
     DraftLimitReached,
     UnreadableImage,
     FileFormatMismatch,
+    DraftNotEditable,
 }
