@@ -1,18 +1,26 @@
 # Specifications
 
-This directory stores the version-controlled requirements and verification contract for each feature or bug fix.
+このディレクトリは、現在の外部仕様と、Issueまたは依頼ごとの変更差分を分けてGit管理する。
+
+## Source of Truth
+
+- `bdd.md`: 現在の外部から観測可能な振る舞いを表す正本
+- `issue-NNNN-*.md`: `bdd.md`に対する変更差分、判断、検証Evidence
+- Default Branchの`bdd.md`は実装済み仕様と一致させる。Issue Branchでは、同じPRで実装する変更後の状態を先に記述してよい。
 
 ## Rules
 
-- Create or update the corresponding specification before changing production or test code.
-- Keep the source Issue, acceptance criteria, BDD scenarios, test mapping, and verification evidence traceable.
-- Set a specification to `Ready` before implementation and to `Verified` only after verification and self-review.
-- Use `issue-NNNN-short-slug.md` for GitHub Issues.
+- Issueまたは依頼を受けたら、実装前に変更差分Specificationを作成する。
+- 変更差分Specificationで追加・変更・削除するBDD Scenarioを特定し、変更後の内容を`bdd.md`へ反映する。
+- `Status: Ready`になるまでProduction CodeとTest Codeの実装へ進まない。
+- 完了時はAC、BDD Scenario、Test Evidence、残存Riskを変更差分Specificationへ反映し、`bdd.md`のTest Mappingも更新する。
+- GitHub Issueには`issue-NNNN-short-slug.md`を使用する。
 
 ## Index
 
 | Spec | Status | Source | Summary |
 | --- | --- | --- | --- |
+| [Canonical BDD](bdd.md) | Current | Repository | 現在の外部仕様とE2E Test項目の正本 |
 | [issue-0001-winforms-app-foundation.md](issue-0001-winforms-app-foundation.md) | Verified | [Issue #1](https://github.com/ryopan727/transfer-image-qr/issues/1) | C# / .NET 8 WinForms application foundation |
 | [issue-0002-draft-drag-drop.md](issue-0002-draft-drag-drop.md) | Verified | [Issue #2](https://github.com/ryopan727/transfer-image-qr/issues/2) | Add JPEG, PNG, and WebP files to a Draft by drag and drop |
 | [issue-0003-image-input-validation.md](issue-0003-image-input-validation.md) | Verified | [Issue #3](https://github.com/ryopan727/transfer-image-qr/issues/3) | Validate image format, size, and Draft capacity |

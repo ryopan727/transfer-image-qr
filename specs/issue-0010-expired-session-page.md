@@ -10,6 +10,7 @@
 | Owner | Codex |
 | Created | 2026-09-20 |
 | Updated | 2026-09-20 |
+| Canonical BDD | [`specs/bdd.md`](bdd.md) |
 
 ## Goal
 
@@ -114,6 +115,17 @@ Scenario: SC-4 PCで新しい転送を開始する
   And 以前のTokenはNotFoundになる
 ```
 
+## Canonical BDD Delta
+
+| Change | Canonical Scenario | Delta |
+| --- | --- | --- |
+| Modified | `BDD-SESSION-004` | 新しい転送後に以前のTokenが利用できないことを明記 |
+| Modified | `BDD-ACCESS-001` | Expired Sessionでも不正Tokenは404として期限切れを開示しない |
+| Added | `BDD-ACCESS-002` | 正しいExpired Tokenの一覧要求を410 HTMLで拒否 |
+| Added | `BDD-ACCESS-003` | 正しいExpired Tokenの元画像要求を410 HTMLで拒否 |
+| Added | `BDD-ACCESS-004` | Active／Expired応答へ`Cache-Control: no-store`を付与 |
+| Added | `BDD-E2E-002` | 期限切れ表示からPCで新しい転送を開始する主要Journey |
+
 ## Impact Analysis
 
 | Area | Impact | Evidence / Notes |
@@ -128,12 +140,13 @@ Scenario: SC-4 PCで新しい転送を開始する
 
 | AC | Scenario | Test Layer | Test / Evidence | Result |
 | --- | --- | --- | --- | --- |
-| AC-1 | SC-1 | Unit + Integration | 5分境界のAccess結果、`GetTransferRoutes_DistinguishNotFoundAndExpiredSessions` | Passed |
-| AC-2 | SC-2 | Integration | 画像410、HTML Content-Type、元バイト不在 | Passed |
-| AC-3 | SC-1, SC-2 | Integration + Markup review | 日本語期限切れ画面、viewport、safe-area | Passed |
-| AC-4 | SC-4 | Unit + Presentation | `StartNewTransfer_AfterActiveSession_ClearsSessionAndResetsDraft`、Presenter/Form tests | Passed |
-| Security | SC-3 | Unit + Integration | 不正Tokenは404、期限切れ本文なし | Passed |
-| Cache | SC-1, SC-2 | Integration | Active一覧／画像とExpired画面のno-store | Passed |
+| AC-1 | BDD-ACCESS-002 | Unit + Integration | 5分境界のAccess結果、`GetTransferRoutes_DistinguishNotFoundAndExpiredSessions` | Passed |
+| AC-2 | BDD-ACCESS-003 | Integration | 画像410、HTML Content-Type、元バイト不在 | Passed |
+| AC-3 | BDD-ACCESS-002, BDD-ACCESS-003 | Integration + Markup review | 日本語期限切れ画面、viewport、safe-area | Passed |
+| AC-4 | BDD-SESSION-004 | Unit + Presentation | `StartNewTransfer_AfterActiveSession_ClearsSessionAndResetsDraft`、Presenter/Form tests | Passed |
+| Security | BDD-ACCESS-001 | Unit + Integration | 不正Tokenは404、期限切れ本文なし | Passed |
+| Cache | BDD-ACCESS-004 | Integration | Active一覧／画像とExpired画面のno-store | Passed |
+| E2E | BDD-E2E-002 | E2E | GUI E2E harness／実iPhone環境未整備 | Not Run |
 
 ## Unknowns / Human Decisions
 
@@ -161,6 +174,7 @@ Scenario: SC-4 PCで新しい転送を開始する
 | `task test:integration` | Passed | Integration: 7 passed |
 | `dotnet format TransferImageQR.sln --verify-no-changes --no-restore` | Passed | Formatting差分なし |
 | `git diff --check` | Passed | Whitespace errorなし（Gitの改行コード通知のみ） |
+| Canonical BDD整合性Check | Passed | 26 Scenario、重複ID 0、未Mapping 0、壊れたMarkdown link 0 |
 | WinForms executable smoke test | Passed | Process継続動作、Kestrel動的Port listenを確認 |
 | 実iPhone Safari | Not Run | 実端末なし。410 HTMLとresponsive markupを実Kestrelで検証 |
 
@@ -170,3 +184,4 @@ Scenario: SC-4 PCで新しい転送を開始する
 | --- | --- | --- |
 | 2026-09-20 | Initial Ready specification | Issue #10とMVP-005/006/008/009の差分から期限切れHTTP契約を確定 |
 | 2026-09-20 | Marked Verified | Access状態、410期限切れ画面、no-store、全品質ゲートを確認 |
+| 2026-09-20 | Canonical BDDへ統合 | 更新後steeringに従い安定Scenario ID、Test Mapping、E2E未実施項目を正本化 |
