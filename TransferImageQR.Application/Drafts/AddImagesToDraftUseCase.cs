@@ -25,6 +25,15 @@ public sealed class AddImagesToDraftUseCase(
             cancellationToken.ThrowIfCancellationRequested();
 
             var fileName = Path.GetFileName(filePath);
+            if (!draft.IsEditable)
+            {
+                rejectedImages.Add(new RejectedDraftImage(
+                    filePath,
+                    fileName,
+                    DraftImageRejectionReason.DraftNotEditable));
+                continue;
+            }
+
             if (string.IsNullOrWhiteSpace(filePath) ||
                 !ImageFileFormatDetector.TryDetect(filePath, out var expectedFormat))
             {

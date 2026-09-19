@@ -17,4 +17,8 @@ public interface IMainView
     void SetDraftActionsEnabled(bool enabled);
 
     void SetDraftEditingEnabled(bool enabled);
+
+    void DisplayTransferSession(TransferSessionViewModel session);
+
+    void DisplayDraftState();
 }

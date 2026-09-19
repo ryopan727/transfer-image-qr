@@ -35,4 +35,22 @@ public sealed class EditDraftUseCaseTests
         Assert.Equal(0, result.TotalCount);
         Assert.Empty(draft.Images);
     }
+
+    [Fact]
+    public void RemoveAndClear_AfterDraftConfirmation_DoNotChangeImages()
+    {
+        var draft = new TransferDraft();
+        var image = draft.Add(@"C:\images\confirmed.jpg");
+        draft.Confirm();
+        var sut = new EditDraftUseCase(draft);
+
+        var removeResult = sut.Remove(image.Id);
+        var clearResult = sut.Clear();
+
+        Assert.False(removeResult.Changed);
+        Assert.False(clearResult.Changed);
+        Assert.Equal(1, removeResult.TotalCount);
+        Assert.Equal(1, clearResult.TotalCount);
+        Assert.Collection(draft.Images, remaining => Assert.Same(image, remaining));
+    }
 }

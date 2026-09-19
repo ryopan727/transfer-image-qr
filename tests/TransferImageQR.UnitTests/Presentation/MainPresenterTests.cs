@@ -1,4 +1,7 @@
 using TransferImageQR.Application.Drafts;
+using TransferImageQR.Application.Sessions;
+using TransferImageQR.Domain.Drafts;
+using TransferImageQR.Domain.Sessions;
 using TransferImageQR.Presentation;
 using Xunit;
 
@@ -18,7 +21,7 @@ public sealed class MainPresenterTests
                 2,
                 []));
         var view = new FakeMainView();
-        var sut = new MainPresenter(view, useCase, new StubEditDraftUseCase());
+        var sut = new MainPresenter(view, useCase, new StubEditDraftUseCase(), new StubTransferSessionUseCase());
 
         await sut.AddDroppedFilesAsync(
             [@"C:\images\one.jpg", @"C:\images\two.png"],
@@ -45,7 +48,7 @@ public sealed class MainPresenterTests
                 3,
                 []));
         var view = new FakeMainView();
-        var sut = new MainPresenter(view, useCase, new StubEditDraftUseCase());
+        var sut = new MainPresenter(view, useCase, new StubEditDraftUseCase(), new StubTransferSessionUseCase());
 
         await sut.AddDroppedFilesAsync([@"C:\images\one.jpg"], TestContext.Current.CancellationToken);
         await sut.AddDroppedFilesAsync(
@@ -62,6 +65,7 @@ public sealed class MainPresenterTests
     [InlineData(DraftImageRejectionReason.DraftLimitReached, "Draftは最大20枚です。")]
     [InlineData(DraftImageRejectionReason.UnreadableImage, "画像を読み込めません。")]
     [InlineData(DraftImageRejectionReason.FileFormatMismatch, "拡張子と画像形式が一致しません。")]
+    [InlineData(DraftImageRejectionReason.DraftNotEditable, "転送中はDraftを変更できません。")]
     public async Task AddDroppedFilesAsync_WithRejection_DisplaysFileNameAndFriendlyReason(
         DraftImageRejectionReason reason,
         string expectedMessage)
@@ -69,7 +73,7 @@ public sealed class MainPresenterTests
         var rejection = new RejectedDraftImage(@"C:\images\invalid.jpg", "invalid.jpg", reason);
         var useCase = new StubAddImagesToDraftUseCase(new AddImagesToDraftResult([], 0, [rejection]));
         var view = new FakeMainView();
-        var sut = new MainPresenter(view, useCase, new StubEditDraftUseCase());
+        var sut = new MainPresenter(view, useCase, new StubEditDraftUseCase(), new StubTransferSessionUseCase());
 
         await sut.AddDroppedFilesAsync([rejection.FilePath], TestContext.Current.CancellationToken);
 
@@ -90,7 +94,7 @@ public sealed class MainPresenterTests
         var editUseCase = new StubEditDraftUseCase(
             removeResult: new DraftEditResult(true, 0));
         var view = new FakeMainView();
-        var sut = new MainPresenter(view, addUseCase, editUseCase);
+        var sut = new MainPresenter(view, addUseCase, editUseCase, new StubTransferSessionUseCase());
         await sut.AddDroppedFilesAsync([@"C:\images\one.jpg"], TestContext.Current.CancellationToken);
 
         sut.RemoveDraftImage(imageId);
@@ -111,7 +115,7 @@ public sealed class MainPresenterTests
                 []));
         var editUseCase = new StubEditDraftUseCase(clearResult: new DraftEditResult(true, 0));
         var view = new FakeMainView();
-        var sut = new MainPresenter(view, addUseCase, editUseCase);
+        var sut = new MainPresenter(view, addUseCase, editUseCase, new StubTransferSessionUseCase());
         await sut.AddDroppedFilesAsync([@"C:\images\one.jpg"], TestContext.Current.CancellationToken);
 
         sut.ClearDraft();
@@ -129,7 +133,8 @@ public sealed class MainPresenterTests
         var sut = new MainPresenter(
             view,
             new StubAddImagesToDraftUseCase(),
-            new StubEditDraftUseCase());
+            new StubEditDraftUseCase(),
+            new StubTransferSessionUseCase());
 
         sut.SetDraftEditingEnabled(false);
 
@@ -146,7 +151,7 @@ public sealed class MainPresenterTests
             removeResult: new DraftEditResult(true, 0),
             clearResult: new DraftEditResult(true, 0));
         var view = new FakeMainView();
-        var sut = new MainPresenter(view, addUseCase, editUseCase);
+        var sut = new MainPresenter(view, addUseCase, editUseCase, new StubTransferSessionUseCase());
         sut.SetDraftEditingEnabled(false);
 
         await sut.AddDroppedFilesAsync([@"C:\images\blocked.jpg"], TestContext.Current.CancellationToken);
@@ -160,6 +165,105 @@ public sealed class MainPresenterTests
         Assert.False(view.DraftCleared);
     }
 
+    [Fact]
+    public void CreateTransferSession_WhenSuccessful_DisablesEditingAndDisplaysActiveState()
+    {
+        var expiresAt = new DateTimeOffset(2026, 9, 20, 12, 5, 0, TimeSpan.Zero);
+        var sessionUseCase = new StubTransferSessionUseCase(
+            createResult: CreateSuccessfulSession(),
+            status: new TransferSessionStatus(TransferSessionState.Active, expiresAt));
+        var view = new FakeMainView();
+        var sut = new MainPresenter(
+            view,
+            new StubAddImagesToDraftUseCase(),
+            new StubEditDraftUseCase(),
+            sessionUseCase);
+
+        sut.CreateTransferSession();
+
+        Assert.True(sessionUseCase.CreateCalled);
+        Assert.False(view.DraftEditingEnabled);
+        Assert.NotNull(view.TransferSession);
+        Assert.False(view.TransferSession.IsExpired);
+        Assert.Equal(expiresAt, view.TransferSession.ExpiresAt);
+    }
+
+    [Fact]
+    public async Task CreateTransferSession_WhileImagesAreBeingAdded_DoesNotConfirmDraft()
+    {
+        var addUseCase = new PendingAddImagesToDraftUseCase();
+        var sessionUseCase = new StubTransferSessionUseCase(
+            createResult: CreateSuccessfulSession(),
+            status: new TransferSessionStatus(
+                TransferSessionState.Active,
+                new DateTimeOffset(2026, 9, 20, 12, 5, 0, TimeSpan.Zero)));
+        var sut = new MainPresenter(
+            new FakeMainView(),
+            addUseCase,
+            new StubEditDraftUseCase(),
+            sessionUseCase);
+        var adding = sut.AddDroppedFilesAsync(
+            [@"C:\images\pending.jpg"],
+            TestContext.Current.CancellationToken);
+
+        sut.CreateTransferSession();
+        addUseCase.Complete(new AddImagesToDraftResult([], 0, []));
+        await adding;
+
+        Assert.False(sessionUseCase.CreateCalled);
+    }
+
+    [Fact]
+    public void RefreshTransferSessionState_AfterExpiration_DisplaysExpiredState()
+    {
+        var expiresAt = new DateTimeOffset(2026, 9, 20, 12, 5, 0, TimeSpan.Zero);
+        var sessionUseCase = new StubTransferSessionUseCase(
+            status: new TransferSessionStatus(TransferSessionState.Expired, expiresAt));
+        var view = new FakeMainView();
+        var sut = new MainPresenter(
+            view,
+            new StubAddImagesToDraftUseCase(),
+            new StubEditDraftUseCase(),
+            sessionUseCase);
+
+        sut.RefreshTransferSessionState();
+
+        Assert.True(view.TransferSession?.IsExpired);
+    }
+
+    [Fact]
+    public void StartNewTransfer_ResetsViewToEmptyEditableDraft()
+    {
+        var sessionUseCase = new StubTransferSessionUseCase();
+        var view = new FakeMainView();
+        var sut = new MainPresenter(
+            view,
+            new StubAddImagesToDraftUseCase(),
+            new StubEditDraftUseCase(),
+            sessionUseCase);
+        sut.SetDraftEditingEnabled(false);
+
+        sut.StartNewTransfer();
+
+        Assert.True(sessionUseCase.StartNewTransferCalled);
+        Assert.True(view.DraftCleared);
+        Assert.Equal(0, view.DraftCount);
+        Assert.True(view.DraftEditingEnabled);
+        Assert.True(view.DraftStateDisplayed);
+    }
+
+    private static CreateTransferSessionResult CreateSuccessfulSession()
+    {
+        var draft = new TransferDraft();
+        draft.Add(@"C:\images\one.jpg");
+        return new CreateTransferSessionResult(
+            true,
+            new TransferSession(
+                "token",
+                draft.Images,
+                new DateTimeOffset(2026, 9, 20, 12, 0, 0, TimeSpan.Zero)));
+    }
+
     private sealed class StubAddImagesToDraftUseCase(params AddImagesToDraftResult[] results)
         : IAddImagesToDraftUseCase
     {
@@ -169,6 +273,18 @@ public sealed class MainPresenterTests
             IReadOnlyCollection<string> filePaths,
             CancellationToken cancellationToken) =>
             Task.FromResult(_results.Dequeue());
+    }
+
+    private sealed class PendingAddImagesToDraftUseCase : IAddImagesToDraftUseCase
+    {
+        private readonly TaskCompletionSource<AddImagesToDraftResult> _completion =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public Task<AddImagesToDraftResult> ExecuteAsync(
+            IReadOnlyCollection<string> filePaths,
+            CancellationToken cancellationToken) => _completion.Task;
+
+        public void Complete(AddImagesToDraftResult result) => _completion.SetResult(result);
     }
 
     private sealed class FakeMainView : IMainView
@@ -183,6 +299,8 @@ public sealed class MainPresenterTests
         public bool DraftCleared { get; private set; }
         public bool DraftActionsEnabled { get; private set; }
         public bool DraftEditingEnabled { get; private set; } = true;
+        public TransferSessionViewModel? TransferSession { get; private set; }
+        public bool DraftStateDisplayed { get; private set; }
 
         public void AppendDraftImages(IReadOnlyCollection<DraftImageViewModel> images) =>
             AppendedImages.AddRange(images);
@@ -198,6 +316,10 @@ public sealed class MainPresenterTests
         public void SetDraftActionsEnabled(bool enabled) => DraftActionsEnabled = enabled;
 
         public void SetDraftEditingEnabled(bool enabled) => DraftEditingEnabled = enabled;
+
+        public void DisplayTransferSession(TransferSessionViewModel session) => TransferSession = session;
+
+        public void DisplayDraftState() => DraftStateDisplayed = true;
 
         public void DisplayRejectedImages(IReadOnlyCollection<RejectedImageViewModel> images)
         {
@@ -224,5 +346,25 @@ public sealed class MainPresenterTests
             ClearCalled = true;
             return clearResult ?? new DraftEditResult(false, 0);
         }
+    }
+
+    private sealed class StubTransferSessionUseCase(
+        CreateTransferSessionResult? createResult = null,
+        TransferSessionStatus? status = null) : ITransferSessionUseCase
+    {
+        public bool CreateCalled { get; private set; }
+        public bool StartNewTransferCalled { get; private set; }
+
+        public CreateTransferSessionResult Create()
+        {
+            CreateCalled = true;
+            return createResult ?? new CreateTransferSessionResult(false, null);
+        }
+
+        public TransferSession? GetCurrent() => createResult?.Session;
+
+        public TransferSessionStatus? GetCurrentStatus() => status;
+
+        public void StartNewTransfer() => StartNewTransferCalled = true;
     }
 }

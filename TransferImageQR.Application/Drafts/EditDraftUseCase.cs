@@ -9,8 +9,7 @@ public sealed class EditDraftUseCase(TransferDraft draft) : IEditDraftUseCase
 
     public DraftEditResult Clear()
     {
-        var changed = draft.Images.Count > 0;
-        draft.Clear();
+        var changed = draft.Clear();
         return new DraftEditResult(changed, draft.Images.Count);
     }
 }

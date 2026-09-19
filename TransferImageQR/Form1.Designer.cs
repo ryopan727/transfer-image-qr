@@ -43,6 +43,9 @@ namespace TransferImageQR
             removeDraftImageButton = new Button();
             clearDraftButton = new Button();
             createQrButton = new Button();
+            sessionStateLabel = new Label();
+            newTransferButton = new Button();
+            sessionStateTimer = new System.Windows.Forms.Timer(components);
             dropPanel.SuspendLayout();
             SuspendLayout();
             //
@@ -67,6 +70,18 @@ namespace TransferImageQR
             statusLabel.TabIndex = 1;
             statusLabel.Text = "PC上の画像をiPhoneへすばやく転送します。";
             //
+            // sessionStateLabel
+            //
+            sessionStateLabel.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+            sessionStateLabel.AutoSize = false;
+            sessionStateLabel.Font = new Font("Segoe UI", 10F, FontStyle.Bold, GraphicsUnit.Point);
+            sessionStateLabel.Location = new Point(536, 48);
+            sessionStateLabel.Name = "sessionStateLabel";
+            sessionStateLabel.Size = new Size(328, 24);
+            sessionStateLabel.TabIndex = 2;
+            sessionStateLabel.Text = "状態: Draft";
+            sessionStateLabel.TextAlign = ContentAlignment.MiddleRight;
+            //
             // dropPanel
             //
             dropPanel.AllowDrop = true;
@@ -78,7 +93,7 @@ namespace TransferImageQR
             dropPanel.Location = new Point(36, 136);
             dropPanel.Name = "dropPanel";
             dropPanel.Size = new Size(828, 112);
-            dropPanel.TabIndex = 2;
+            dropPanel.TabIndex = 3;
             dropPanel.DragDrop += DropPanel_DragDrop;
             dropPanel.DragEnter += DropPanel_DragEnter;
             //
@@ -111,7 +126,7 @@ namespace TransferImageQR
             draftCountLabel.Location = new Point(36, 276);
             draftCountLabel.Name = "draftCountLabel";
             draftCountLabel.Size = new Size(77, 21);
-            draftCountLabel.TabIndex = 3;
+            draftCountLabel.TabIndex = 4;
             draftCountLabel.Text = "Draft: 0枚";
             //
             // removeDraftImageButton
@@ -121,7 +136,7 @@ namespace TransferImageQR
             removeDraftImageButton.Location = new Point(483, 270);
             removeDraftImageButton.Name = "removeDraftImageButton";
             removeDraftImageButton.Size = new Size(120, 32);
-            removeDraftImageButton.TabIndex = 4;
+            removeDraftImageButton.TabIndex = 5;
             removeDraftImageButton.Text = "選択画像を削除";
             removeDraftImageButton.UseVisualStyleBackColor = true;
             removeDraftImageButton.Click += RemoveDraftImageButton_Click;
@@ -133,7 +148,7 @@ namespace TransferImageQR
             clearDraftButton.Location = new Point(609, 270);
             clearDraftButton.Name = "clearDraftButton";
             clearDraftButton.Size = new Size(120, 32);
-            clearDraftButton.TabIndex = 5;
+            clearDraftButton.TabIndex = 6;
             clearDraftButton.Text = "全クリア";
             clearDraftButton.UseVisualStyleBackColor = true;
             clearDraftButton.Click += ClearDraftButton_Click;
@@ -145,9 +160,28 @@ namespace TransferImageQR
             createQrButton.Location = new Point(735, 270);
             createQrButton.Name = "createQrButton";
             createQrButton.Size = new Size(129, 32);
-            createQrButton.TabIndex = 6;
+            createQrButton.TabIndex = 7;
             createQrButton.Text = "QR作成";
             createQrButton.UseVisualStyleBackColor = true;
+            createQrButton.Click += CreateQrButton_Click;
+            //
+            // newTransferButton
+            //
+            newTransferButton.AccessibleName = "新しい転送";
+            newTransferButton.Enabled = false;
+            newTransferButton.Location = new Point(735, 270);
+            newTransferButton.Name = "newTransferButton";
+            newTransferButton.Size = new Size(129, 32);
+            newTransferButton.TabIndex = 8;
+            newTransferButton.Text = "新しい転送";
+            newTransferButton.UseVisualStyleBackColor = true;
+            newTransferButton.Visible = false;
+            newTransferButton.Click += NewTransferButton_Click;
+            //
+            // sessionStateTimer
+            //
+            sessionStateTimer.Interval = 1000;
+            sessionStateTimer.Tick += SessionStateTimer_Tick;
             //
             // draftListView
             //
@@ -161,7 +195,7 @@ namespace TransferImageQR
             draftListView.Name = "draftListView";
             draftListView.ShowItemToolTips = true;
             draftListView.Size = new Size(828, 294);
-            draftListView.TabIndex = 7;
+            draftListView.TabIndex = 9;
             draftListView.UseCompatibleStateImageBehavior = false;
             draftListView.SelectedIndexChanged += DraftListView_SelectedIndexChanged;
             //
@@ -180,7 +214,7 @@ namespace TransferImageQR
             emptyDraftLabel.Location = new Point(357, 448);
             emptyDraftLabel.Name = "emptyDraftLabel";
             emptyDraftLabel.Size = new Size(186, 15);
-            emptyDraftLabel.TabIndex = 8;
+            emptyDraftLabel.TabIndex = 10;
             emptyDraftLabel.Text = "Draftに画像はまだありません。";
             //
             // rejectionTitleLabel
@@ -192,7 +226,7 @@ namespace TransferImageQR
             rejectionTitleLabel.Location = new Point(36, 614);
             rejectionTitleLabel.Name = "rejectionTitleLabel";
             rejectionTitleLabel.Size = new Size(103, 15);
-            rejectionTitleLabel.TabIndex = 9;
+            rejectionTitleLabel.TabIndex = 11;
             rejectionTitleLabel.Text = "追加できない画像";
             rejectionTitleLabel.Visible = false;
             //
@@ -207,7 +241,7 @@ namespace TransferImageQR
             rejectionListBox.Location = new Point(36, 636);
             rejectionListBox.Name = "rejectionListBox";
             rejectionListBox.Size = new Size(828, 64);
-            rejectionListBox.TabIndex = 10;
+            rejectionListBox.TabIndex = 12;
             rejectionListBox.Visible = false;
             //
             // Form1
@@ -218,6 +252,7 @@ namespace TransferImageQR
             ClientSize = new Size(900, 720);
             Controls.Add(rejectionListBox);
             Controls.Add(rejectionTitleLabel);
+            Controls.Add(newTransferButton);
             Controls.Add(createQrButton);
             Controls.Add(clearDraftButton);
             Controls.Add(removeDraftImageButton);
@@ -226,6 +261,7 @@ namespace TransferImageQR
             Controls.Add(draftCountLabel);
             Controls.Add(dropPanel);
             Controls.Add(statusLabel);
+            Controls.Add(sessionStateLabel);
             Controls.Add(headingLabel);
             MinimumSize = new Size(720, 640);
             Name = "mainForm";
@@ -254,5 +290,8 @@ namespace TransferImageQR
         private Button removeDraftImageButton;
         private Button clearDraftButton;
         private Button createQrButton;
+        private Label sessionStateLabel;
+        private Button newTransferButton;
+        private System.Windows.Forms.Timer sessionStateTimer;
     }
 }

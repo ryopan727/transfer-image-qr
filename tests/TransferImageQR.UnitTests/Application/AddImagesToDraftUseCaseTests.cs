@@ -102,6 +102,25 @@ public sealed class AddImagesToDraftUseCaseTests
             rejection => Assert.Equal(DraftImageRejectionReason.UnreadableImage, rejection.Reason));
     }
 
+    [Fact]
+    public async Task ExecuteAsync_AfterDraftConfirmation_RejectsWithoutReadingFiles()
+    {
+        var draft = new TransferDraft();
+        draft.Add(@"C:\images\confirmed.jpg");
+        draft.Confirm();
+        var dependencies = new FakeImageDependencies();
+        var sut = CreateUseCase(draft, dependencies);
+
+        var result = await sut.ExecuteAsync(
+            [@"C:\images\blocked.png"],
+            TestContext.Current.CancellationToken);
+
+        Assert.Empty(result.AddedImages);
+        Assert.Equal(DraftImageRejectionReason.DraftNotEditable, Assert.Single(result.RejectedImages).Reason);
+        Assert.Empty(dependencies.MetadataRequests);
+        Assert.Empty(dependencies.ThumbnailRequests);
+    }
+
     private static AddImagesToDraftUseCase CreateUseCase(
         TransferDraft draft,
         FakeImageDependencies dependencies) =>
