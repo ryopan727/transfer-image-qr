@@ -1,3 +1,4 @@
+using System.Net.Http.Headers;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Hosting.Server;
@@ -113,7 +114,7 @@ public sealed class LanImageHttpServer(
             (string token) => GetSession(token));
         application.MapGet(
             "/transfer/{token}/images/{imageId:guid}",
-            (string token, Guid imageId) => GetImage(token, imageId));
+            (HttpContext context, string token, Guid imageId) => GetImage(context, token, imageId));
     }
 
     private IResult GetSession(string token) =>
@@ -123,7 +124,7 @@ public sealed class LanImageHttpServer(
                 "text/html; charset=utf-8")
             : Results.NotFound();
 
-    private IResult GetImage(string token, Guid imageId)
+    private IResult GetImage(HttpContext context, string token, Guid imageId)
     {
         var session = sessionProvider.GetActive(token);
         var image = session?.Images.FirstOrDefault(candidate => candidate.Id == imageId);
@@ -131,6 +132,12 @@ public sealed class LanImageHttpServer(
         {
             return Results.NotFound();
         }
+
+        var contentDisposition = new ContentDispositionHeaderValue("inline")
+        {
+            FileNameStar = image.FileName,
+        };
+        context.Response.Headers.ContentDisposition = contentDisposition.ToString();
 
         return Results.File(
             image.FilePath,
