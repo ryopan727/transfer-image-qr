@@ -8,6 +8,7 @@ namespace TransferImageQR
         private bool _draftActionsEnabled;
         private bool _draftEditingEnabled = true;
         private string? _displayedQrUrl;
+        private bool _updatingLanAddresses;
 
         public Form1()
         {
@@ -18,6 +19,40 @@ namespace TransferImageQR
         {
             _presenter = presenter ?? throw new ArgumentNullException(nameof(presenter));
         }
+
+        public void DisplayLanAddresses(
+            IReadOnlyCollection<LanAddressViewModel> addresses,
+            string? selectedAddress)
+        {
+            _updatingLanAddresses = true;
+            try
+            {
+                lanAddressComboBox.Items.Clear();
+                if (addresses.Count == 0)
+                {
+                    lanAddressComboBox.Items.Add("利用可能なLAN IPv4アドレスがありません");
+                    lanAddressComboBox.SelectedIndex = 0;
+                    return;
+                }
+
+                foreach (var address in addresses)
+                {
+                    lanAddressComboBox.Items.Add(address);
+                }
+
+                lanAddressComboBox.DisplayMember = nameof(LanAddressViewModel.DisplayName);
+                lanAddressComboBox.SelectedItem = addresses.FirstOrDefault(
+                    address => string.Equals(address.Address, selectedAddress, StringComparison.Ordinal));
+            }
+            finally
+            {
+                _updatingLanAddresses = false;
+            }
+        }
+
+        public void SetLanAddressSelectionEnabled(bool enabled) =>
+            lanAddressComboBox.Enabled = enabled &&
+                lanAddressComboBox.SelectedItem is LanAddressViewModel;
 
         public void AppendDraftImages(IReadOnlyCollection<DraftImageViewModel> images)
         {
@@ -213,6 +248,15 @@ namespace TransferImageQR
 
         private void SessionStateTimer_Tick(object? sender, EventArgs e) =>
             _presenter?.RefreshTransferSessionState();
+
+        private void LanAddressComboBox_SelectedIndexChanged(object? sender, EventArgs e)
+        {
+            if (!_updatingLanAddresses &&
+                lanAddressComboBox.SelectedItem is LanAddressViewModel selected)
+            {
+                _presenter?.SelectLanAddress(selected.Address);
+            }
+        }
 
         private void UpdateDraftButtonState()
         {

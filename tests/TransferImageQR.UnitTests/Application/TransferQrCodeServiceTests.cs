@@ -1,3 +1,4 @@
+using System.Net;
 using TransferImageQR.Application.QrCodes;
 using TransferImageQR.Application.Transfers;
 using Xunit;
@@ -14,9 +15,11 @@ public sealed class TransferQrCodeServiceTests
         var qrGenerator = new StubQrCodeGenerator();
         var sut = new TransferQrCodeService(urlProvider, qrGenerator);
 
-        var result = sut.Create("current-token");
+        var selectedAddress = IPAddress.Parse("192.168.1.20");
+        var result = sut.Create("current-token", selectedAddress);
 
         Assert.Equal("current-token", urlProvider.SessionToken);
+        Assert.Equal(selectedAddress, urlProvider.Address);
         Assert.Equal(result?.Url.AbsoluteUri, qrGenerator.Content);
         Assert.Equal([1, 2, 3], result?.PngBytes);
     }
@@ -27,7 +30,7 @@ public sealed class TransferQrCodeServiceTests
         var qrGenerator = new StubQrCodeGenerator();
         var sut = new TransferQrCodeService(new StubUrlProvider(null), qrGenerator);
 
-        var result = sut.Create("current-token");
+        var result = sut.Create("current-token", null);
 
         Assert.Null(result);
         Assert.Null(qrGenerator.Content);
@@ -36,10 +39,12 @@ public sealed class TransferQrCodeServiceTests
     private sealed class StubUrlProvider(Uri? url) : ITransferUrlProvider
     {
         public string? SessionToken { get; private set; }
+        public IPAddress? Address { get; private set; }
 
-        public Uri? Create(string sessionToken)
+        public Uri? Create(string sessionToken, IPAddress? address)
         {
             SessionToken = sessionToken;
+            Address = address;
             return url;
         }
     }

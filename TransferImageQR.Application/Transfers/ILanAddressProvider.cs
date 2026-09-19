@@ -1,8 +1,6 @@
-using System.Net;
-
 namespace TransferImageQR.Application.Transfers;
 
 public interface ILanAddressProvider
 {
-    IPAddress? GetPreferredIPv4Address();
+    IReadOnlyList<LanAddressOption> GetIPv4Addresses();
 }

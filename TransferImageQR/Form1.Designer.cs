@@ -32,6 +32,8 @@ namespace TransferImageQR
             components = new System.ComponentModel.Container();
             headingLabel = new Label();
             statusLabel = new Label();
+            lanAddressLabel = new Label();
+            lanAddressComboBox = new ComboBox();
             dropPanel = new Panel();
             supportedFormatsLabel = new Label();
             dropInstructionLabel = new Label();
@@ -77,6 +79,29 @@ namespace TransferImageQR
             statusLabel.Size = new Size(297, 20);
             statusLabel.TabIndex = 1;
             statusLabel.Text = "PC上の画像をiPhoneへすばやく転送します。";
+            //
+            // lanAddressLabel
+            //
+            lanAddressLabel.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+            lanAddressLabel.AutoSize = true;
+            lanAddressLabel.Location = new Point(512, 94);
+            lanAddressLabel.Name = "lanAddressLabel";
+            lanAddressLabel.Size = new Size(125, 15);
+            lanAddressLabel.TabIndex = 2;
+            lanAddressLabel.Text = "転送に使うLANアドレス";
+            //
+            // lanAddressComboBox
+            //
+            lanAddressComboBox.AccessibleName = "転送に使うLANアドレス";
+            lanAddressComboBox.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+            lanAddressComboBox.DropDownStyle = ComboBoxStyle.DropDownList;
+            lanAddressComboBox.Enabled = false;
+            lanAddressComboBox.FormattingEnabled = true;
+            lanAddressComboBox.Location = new Point(643, 90);
+            lanAddressComboBox.Name = "lanAddressComboBox";
+            lanAddressComboBox.Size = new Size(221, 23);
+            lanAddressComboBox.TabIndex = 3;
+            lanAddressComboBox.SelectedIndexChanged += LanAddressComboBox_SelectedIndexChanged;
             //
             // sessionStateLabel
             //
@@ -327,6 +352,8 @@ namespace TransferImageQR
             Controls.Add(draftCountLabel);
             Controls.Add(dropPanel);
             Controls.Add(statusLabel);
+            Controls.Add(lanAddressComboBox);
+            Controls.Add(lanAddressLabel);
             Controls.Add(sessionStateLabel);
             Controls.Add(headingLabel);
             MinimumSize = new Size(720, 640);
@@ -347,6 +374,8 @@ namespace TransferImageQR
 
         private Label headingLabel;
         private Label statusLabel;
+        private Label lanAddressLabel;
+        private ComboBox lanAddressComboBox;
         private Panel dropPanel;
         private Label supportedFormatsLabel;
         private Label dropInstructionLabel;

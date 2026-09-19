@@ -1,3 +1,4 @@
+using System.Net;
 using System.Runtime.ExceptionServices;
 using System.Windows.Forms;
 using SkiaSharp;
@@ -190,7 +191,8 @@ public sealed class Form1Tests
                 new StubAddImagesToDraftUseCase(new AddImagesToDraftResult([], 1, [])),
                 new StubEditDraftUseCase(),
                 sessionUseCase,
-                new StubTransferQrCodeService());
+                new StubTransferQrCodeService(),
+                new StubLanAddressProvider());
             form.AttachPresenter(presenter);
             form.Show();
             form.SetDraftActionsEnabled(true);
@@ -204,6 +206,60 @@ public sealed class Form1Tests
             Assert.True(newTransferButton.Visible);
             newTransferButton.PerformClick();
             Assert.True(sessionUseCase.StartNewTransferCalled);
+        });
+    }
+
+    [Fact]
+    public void LanAddressSelection_RendersCandidatesAndDelegatesSelection()
+    {
+        RunInSta(() =>
+        {
+            var qrCodeService = new StubTransferQrCodeService();
+            using var form = new Form1();
+            var presenter = new MainPresenter(
+                form,
+                new StubAddImagesToDraftUseCase(new AddImagesToDraftResult([], 0, [])),
+                new StubEditDraftUseCase(),
+                new StubTransferSessionUseCase(CreateSuccessfulSession()),
+                qrCodeService,
+                new StubLanAddressProvider(
+                    new LanAddressOption(IPAddress.Parse("192.168.1.20"), "Ethernet"),
+                    new LanAddressOption(IPAddress.Parse("192.168.1.50"), "Wi-Fi")));
+            form.AttachPresenter(presenter);
+            presenter.Initialize();
+            form.Show();
+            System.Windows.Forms.Application.DoEvents();
+
+            var comboBox = Assert.IsType<ComboBox>(
+                Assert.Single(form.Controls.Find("lanAddressComboBox", true)));
+            Assert.Equal("転送に使うLANアドレス", comboBox.AccessibleName);
+            Assert.Equal(2, comboBox.Items.Count);
+            Assert.Equal("Ethernet — 192.168.1.20", comboBox.Text);
+
+            comboBox.SelectedIndex = 1;
+            form.SetDraftActionsEnabled(true);
+            var createButton = Assert.IsType<Button>(
+                Assert.Single(form.Controls.Find("createQrButton", true)));
+            createButton.PerformClick();
+
+            Assert.Equal(IPAddress.Parse("192.168.1.50"), qrCodeService.Address);
+        });
+    }
+
+    [Fact]
+    public void LanAddressSelection_WithoutCandidates_ShowsDisabledGuidance()
+    {
+        RunInSta(() =>
+        {
+            using var form = new Form1();
+
+            form.DisplayLanAddresses([], null);
+            form.SetLanAddressSelectionEnabled(false);
+
+            var comboBox = Assert.IsType<ComboBox>(
+                Assert.Single(form.Controls.Find("lanAddressComboBox", true)));
+            Assert.False(comboBox.Enabled);
+            Assert.Equal("利用可能なLAN IPv4アドレスがありません", comboBox.Text);
         });
     }
 
@@ -310,6 +366,18 @@ public sealed class Form1Tests
 
     private sealed class StubTransferQrCodeService : ITransferQrCodeService
     {
-        public TransferQrCode? Create(string sessionToken) => null;
+        public IPAddress? Address { get; private set; }
+
+        public TransferQrCode? Create(string sessionToken, IPAddress? address)
+        {
+            Address = address;
+            return null;
+        }
+    }
+
+    private sealed class StubLanAddressProvider(params LanAddressOption[] options)
+        : ILanAddressProvider
+    {
+        public IReadOnlyList<LanAddressOption> GetIPv4Addresses() => options;
     }
 }

@@ -17,7 +17,7 @@
 - 5分間のメモリ内転送SessionとQRコード生成
 - Kestrelによる同一LAN向け画像一覧・元画像配信
 - iPhone Safari向け表示、Token検証、期限切れ拒否
-- MVP-001〜MVP-010で実装済みの振る舞い
+- MVP-001〜MVP-011で実装済みの振る舞い
 
 システムトレイ、自動起動、背景画像設定など、未実装Issueの振る舞いは本書の対象外とする。
 
@@ -138,18 +138,40 @@ Scenario: BDD-SESSION-004 新しい転送を開始する
 
 ## Feature: LAN転送の開始
 
+### Rule: 転送に使うLAN IPv4 Addressを選択できる
+
+```gherkin
+Scenario: BDD-NETWORK-001 利用可能なLAN IPv4 Address候補を表示する
+  Given Windows PCにUp状態の複数Network Interfaceがある
+  When Main WindowでLAN Address候補を確認する
+  Then Up状態のPrivate IPv4 Addressが重複なく表示される
+  And Loopback、link-local、Public IPv4、IPv6、Down InterfaceのAddressは表示されない
+
+Scenario: BDD-NETWORK-002 転送に使うAddressを選択する
+  Given 利用可能なLAN IPv4 Address候補が複数表示されている
+  When 利用者が1件のAddressを選択してQR作成を選択する
+  Then 選択したAddressが転送URLとQR payloadのHostになる
+  And Active中はAddressを変更できない
+
+Scenario: BDD-NETWORK-003 次の転送でも選択を保持する
+  Given 利用者がLAN IPv4 Addressを選択して転送を開始している
+  When 新しい転送を選択してDraftへ戻る
+  Then 同じAddressが選択されたまま表示される
+  And 利用者は別の候補へ変更できる
+```
+
 ### Rule: 現在SessionのLAN URLをQRで提示する
 
 ```gherkin
 Scenario: BDD-TRANSFER-001 現在の転送URLをQR表示する
-  Given Draftに画像があり利用可能なLAN IPv4 Addressがある
+  Given Draftに画像があり利用可能なLAN IPv4 Addressを選択している
   When 利用者がQR作成を選択する
   Then Kestrelが全Network InterfaceでHTTP待受を開始する
-  And 現在のSession Tokenを含むLAN URLのQRコードが表示される
+  And 選択したAddressと現在のSession Tokenを含むLAN URLのQRコードが表示される
   And 過去のTokenはQRコードに含まれない
 
 Scenario: BDD-TRANSFER-002 LAN IPv4 Addressがない場合に案内する
-  Given 利用可能なLAN IPv4 Addressがない
+  Given 利用可能なLAN IPv4 Address候補がない
   When 利用者がQR作成を選択する
   Then 読み取り不能なQRコードは表示されない
   And Networkを確認する案内が表示される
@@ -280,8 +302,11 @@ Scenario: BDD-E2E-002 期限切れ後に新しい転送を開始する
 | BDD-SESSION-002 | Unit | Token entropy、URL-safe、unique tests | 2026-09-20 |
 | BDD-SESSION-003 | Unit | `TimeProvider`を使う5分境界tests | 2026-09-20 |
 | BDD-SESSION-004 | Unit / Presentation | `StartNewTransfer_AfterActiveSession_ClearsSessionAndResetsDraft` | 2026-09-20 |
-| BDD-TRANSFER-001 | Unit / Presentation / Runtime smoke | URL、NIC選択、QR payload、Kestrel listen tests | 2026-09-20 |
-| BDD-TRANSFER-002 | Unit / Presentation | LAN Address不在時のPresenter/Form tests | 2026-09-20 |
+| BDD-NETWORK-001 | Unit / Presentation | `SelectUsable_ReturnsPrivateIPv4CandidatesInDeterministicOrder`、Presenter／Form候補表示tests | 2026-09-20 |
+| BDD-NETWORK-002 | Unit / Presentation / Integration | 選択Event、Active時無効化、URL Host、QR生成tests | 2026-09-20 |
+| BDD-NETWORK-003 | Presentation | `SelectedLanAddress_IsUsedForQrAndRetainedAfterStartingNewTransfer` | 2026-09-20 |
+| BDD-TRANSFER-001 | Unit / Presentation / Runtime smoke | 選択AddressのURL／QR反映、Kestrel listen | 2026-09-20 |
+| BDD-TRANSFER-002 | Unit / Presentation | 候補なしのPresenter／Form表示tests | 2026-09-20 |
 | BDD-TRANSFER-003 | Unit / Runtime smoke | Server lifecycle tests、Process終了確認 | 2026-09-20 |
 | BDD-WEB-001 | Integration / E2E | 実Kestrel gallery integration: Passed; iPhone Camera/Safari: Not Run | 2026-09-20 |
 | BDD-WEB-002 | Integration / E2E | 20枚、viewport、Grid markup: Passed; iPhone実機visual: Not Run | 2026-09-20 |
@@ -305,7 +330,8 @@ Scenario: BDD-E2E-002 期限切れ後に新しい転送を開始する
 - 対応形式はJPEG、PNG、WebP、最大20枚、1File最大10MBである。
 - 元画像は不要にCopyせず、可能な限り元Fileから直接配信する。
 - Session lifetimeは5分であり、期限延長や再有効化は行わない。
-- 複数NIC、VPN、Hyper-V、Docker等があるため、LAN IPv4 Address選択は誤選択の可能性を残す。
+- 複数NIC、VPN、Hyper-V、Docker等ではPrivate IPv4候補から利用者が選択し、選択は同一Application Process内で保持する。
+- PC上の候補検出だけではiPhoneからの実到達性を保証できず、Network構成とFirewallに依存する。
 - GUI E2E自動化を導入する場合はFlaUI等のToolをPoCで3回連続成功させてから採用する。
 - iPhone Camera、Safari layout、iOS写真保存は実端末での手動E2E確認を別途必要とする。
 
@@ -323,4 +349,5 @@ Scenario: BDD-E2E-002 期限切れ後に新しい転送を開始する
 | `specs/issue-0008-safari-image-gallery.md` | BDD-WEB-001〜003 | iPhone Safari向け画像一覧 |
 | `specs/issue-0009-safari-original-image.md` | BDD-IMAGE-001〜003 | 元画像inline配信とRange応答 |
 | `specs/issue-0010-expired-session-page.md` | BDD-SESSION-004, BDD-ACCESS-001〜004, BDD-E2E-002 | 期限切れ拒否、案内画面、再転送 |
+| `specs/issue-0011-lan-interface-selection.md` | BDD-NETWORK-001〜003, BDD-TRANSFER-001〜002 | LAN IPv4候補の表示・選択・保持とQR反映 |
 
