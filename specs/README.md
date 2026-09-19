@@ -14,3 +14,4 @@ This directory stores the version-controlled requirements and verification contr
 | Spec | Status | Source | Summary |
 | --- | --- | --- | --- |
 | [issue-0001-winforms-app-foundation.md](issue-0001-winforms-app-foundation.md) | Verified | [Issue #1](https://github.com/ryopan727/transfer-image-qr/issues/1) | C# / .NET 8 WinForms application foundation |
+| [issue-0002-draft-drag-drop.md](issue-0002-draft-drag-drop.md) | Verified | [Issue #2](https://github.com/ryopan727/transfer-image-qr/issues/2) | Add JPEG, PNG, and WebP files to a Draft by drag and drop |

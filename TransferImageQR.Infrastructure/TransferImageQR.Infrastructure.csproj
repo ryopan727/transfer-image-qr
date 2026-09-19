@@ -7,6 +7,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="SkiaSharp" Version="4.152.1" />
+    <PackageReference Include="SkiaSharp.NativeAssets.Win32" Version="4.152.1" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\TransferImageQR.Application\TransferImageQR.Application.csproj" />
     <ProjectReference Include="..\TransferImageQR.Domain\TransferImageQR.Domain.csproj" />
   </ItemGroup>
