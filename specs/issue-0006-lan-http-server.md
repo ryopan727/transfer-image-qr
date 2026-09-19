@@ -53,7 +53,7 @@
 - FR-2: サーバーはループバック限定ではなく全ネットワークインターフェースで待ち受ける。
 - FR-3: `GET /transfer/{token}`はTokenが現在のActiveセッションと一致すると200を返す。
 - FR-4: `GET /transfer/{token}/images/{imageId}`はActiveセッションに含まれる画像だけを返す。
-- FR-5: Token欠落、不一致、Expiredセッション、対象外の画像IDは404を返す。
+- FR-5: Token欠落、不一致、対象外の画像IDは404を返す。正しいExpired TokenはMVP-010の契約に従い410期限切れ画面を返す。
 - FR-6: JPEGは`image/jpeg`、PNGは`image/png`、WebPは`image/webp`で返す。
 - FR-7: 画像は変換・再圧縮・中間コピーを行わず、元ファイルから返す。
 - FR-8: アプリ起動中にKestrelを開始し、アプリ終了時に停止・破棄する。
@@ -72,8 +72,8 @@
 
 | Method / Path | Success | Failure |
 | --- | --- | --- |
-| `GET /transfer/{token}` | `200 text/plain` | `404` |
-| `GET /transfer/{token}/images/{imageId:guid}` | `200` + image Content-Type + original bytes | `404` |
+| `GET /transfer/{token}` | `200 text/html` | 不正Token: `404`、Expired: `410 text/html` |
+| `GET /transfer/{token}/images/{imageId:guid}` | `200` + image Content-Type + original bytes | 不正Token/ID: `404`、Expired: `410 text/html` |
 
 - TokenはPath segmentに含める。
 - Tokenなしの`/transfer`にはRouteを設けず404とする。
@@ -110,7 +110,7 @@ Scenario: SC-2 Tokenなしまたは不一致を拒否する
 Scenario: SC-3 Expiredセッションを拒否する
   Given 5分を経過したセッションがある
   When 正しいTokenでセッションまたは画像へアクセスする
-  Then 404が返る
+  Then 410と利用者向け期限切れHTMLが返る
 
 Scenario: SC-4 Serverを開始・停止する
   Given Serverが停止している
@@ -140,7 +140,7 @@ Scenario: SC-4 Serverを開始・停止する
 | AC | Scenario | Test Layer | Test / Evidence | Result |
 | --- | --- | --- | --- | --- |
 | AC-1 | SC-4 | Integration | `StartAndStopAsync_BindsAllInterfacesOnDynamicPort`で開始・冪等開始・停止・冪等停止・再開始 | Passed |
-| AC-2 | SC-1, SC-3 | Unit + Integration | `GetActive_RequiresMatchingTokenAndActiveState`、Expired時のSession/Image GET | Passed |
+| AC-2 | SC-1, SC-3 | Unit + Integration | `GetAccess_DistinguishesActiveExpiredAndNotFoundWithoutExposingExpiredSession`、Expired時のSession/Image GET | Passed |
 | AC-3 | SC-2 | Integration | Token欠落・不一致・画像ID不一致が404 | Passed |
 | AC-4 | SC-1 | Integration | JPEG / PNG / WebPのContent-Typeと元Byte一致 | Passed |
 | AC-5 | SC-4 | Integration + OS evidence | `[::]`全NIC待受とloopback HTTP、製品ProcessのListen確認 | Passed（実iPhoneは未実行） |
@@ -148,14 +148,14 @@ Scenario: SC-4 Serverを開始・停止する
 ## Unknowns / Human Decisions
 
 - Decision: HTTP契約は後続のSafari一覧とQR URLが拡張できる`/transfer/{token}`配下に置く。
-- Decision: Security上、無効・欠落・Expired Tokenはいずれも404とする。
+- Decision: 無効・欠落Tokenは404とし、正しいExpired TokenのみMVP-010で410期限切れ画面へ拡張した。
 - Decision: Port競合を避けるためKestrelは起動時に動的Portを取得する。固定Port設定は要求されていない。
 - Decision: HTTPSは同一LAN・インターネット不要・証明書配布なしのMVP制約から対象外とする。
 - Residual risk: Windows FirewallやAP isolationにより実端末から到達できない可能性があり、MVP-011/015で利用者向け選択・診断を追加する。
 
 ## Implementation Notes
 
-- Applicationに`IActiveTransferSessionProvider`を追加し、Token一致とActive状態を固定時間比較を含めて判定する。
+- Applicationの`ITransferSessionAccessProvider`がToken一致を固定時間比較し、Active / Expired / NotFoundを区別する。
 - Infrastructureの`LanImageHttpServer`がSlim ASP.NET Core Hostを構築し、`ListenAnyIP(0)`で全NICの動的Portへバインドする。
 - Session確認と画像配信の両Routeが同じActive Session Portを使用し、認可失敗を404へ統一する。
 - 画像配信は`Results.File`で元Pathを直接返し、Range Requestを有効にする。
@@ -182,3 +182,4 @@ Scenario: SC-4 Serverを開始・停止する
 | --- | --- | --- |
 | 2026-09-20 | Initial Ready specification | Issue #6とMVP-005実装からHTTP契約と検証境界を確定 |
 | 2026-09-20 | Marked Verified and recorded evidence | 全Acceptance Criteriaの自動検証とOS待受確認が完了 |
+| 2026-09-20 | Updated expiration contract | MVP-010で正しいExpired Tokenを410期限切れ画面へ拡張 |

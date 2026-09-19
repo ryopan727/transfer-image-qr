@@ -59,6 +59,9 @@ public sealed class TransferSessionUseCaseTests
         sut.StartNewTransfer();
 
         Assert.Null(sut.GetCurrent());
+        Assert.Equal(
+            TransferSessionAccessStatus.NotFound,
+            sut.GetAccess("generated-token").Status);
         Assert.True(draft.IsEditable);
         Assert.Empty(draft.Images);
     }
@@ -83,7 +86,7 @@ public sealed class TransferSessionUseCaseTests
     }
 
     [Fact]
-    public void GetActive_RequiresMatchingTokenAndActiveState()
+    public void GetAccess_DistinguishesActiveExpiredAndNotFoundWithoutExposingExpiredSession()
     {
         var draft = new TransferDraft();
         draft.Add(@"C:\images\first.jpg");
@@ -94,11 +97,17 @@ public sealed class TransferSessionUseCaseTests
             timeProvider);
         var session = Assert.IsType<TransferSession>(sut.Create().Session);
 
-        Assert.Same(session, sut.GetActive("generated-token"));
-        Assert.Null(sut.GetActive("wrong-token"));
+        var active = sut.GetAccess("generated-token");
+        Assert.Equal(TransferSessionAccessStatus.Active, active.Status);
+        Assert.Same(session, active.Session);
+        var unknown = sut.GetAccess("wrong-token");
+        Assert.Equal(TransferSessionAccessStatus.NotFound, unknown.Status);
+        Assert.Null(unknown.Session);
 
         timeProvider.UtcNow = session.ExpiresAt;
-        Assert.Null(sut.GetActive("generated-token"));
+        var expired = sut.GetAccess("generated-token");
+        Assert.Equal(TransferSessionAccessStatus.Expired, expired.Status);
+        Assert.Null(expired.Session);
     }
 
     private sealed class StubTokenGenerator(string token) : ISessionTokenGenerator
