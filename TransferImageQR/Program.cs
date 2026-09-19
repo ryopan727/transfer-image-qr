@@ -1,6 +1,7 @@
 using TransferImageQR.Application.Drafts;
 using TransferImageQR.Domain.Drafts;
 using TransferImageQR.Infrastructure.Images;
+using TransferImageQR.Infrastructure.Files;
 using TransferImageQR.Presentation;
 
 namespace TransferImageQR
@@ -17,7 +18,11 @@ namespace TransferImageQR
 
             var draft = new TransferDraft();
             var thumbnailProvider = new SkiaImageThumbnailProvider();
-            var addImagesToDraft = new AddImagesToDraftUseCase(draft, thumbnailProvider);
+            var fileMetadataProvider = new PhysicalFileMetadataProvider();
+            var addImagesToDraft = new AddImagesToDraftUseCase(
+                draft,
+                thumbnailProvider,
+                fileMetadataProvider);
             using var mainForm = new Form1();
             var presenter = new MainPresenter(mainForm, addImagesToDraft);
             mainForm.AttachPresenter(presenter);

@@ -2,7 +2,7 @@
 
 Windows PC上の画像を、クラウドやNASを経由せず、同一LAN上のiPhoneへ渡すためのC# / .NET 8 Windows Formsアプリです。
 
-現在はMVP-002まで実装しており、JPEG、PNG、WebPをドラッグ＆ドロップしてDraftのサムネイル一覧へ追加できます。サイズ・枚数制限、QRコード生成、HTTP配信は後続Issueで追加します。
+現在はMVP-003まで実装しており、JPEG、PNG、WebPをドラッグ＆ドロップしてDraftのサムネイル一覧へ追加できます。1ファイル10MB、Draft最大20枚の制限があり、追加できないファイルはファイル名と理由を画面へ表示します。QRコード生成とHTTP配信は後続Issueで追加します。
 
 ## Requirements
 

@@ -38,7 +38,7 @@ public sealed class Form1Tests
                 @"C:\images\sample.webp",
                 "sample.webp",
                 CreatePng());
-            var useCase = new StubAddImagesToDraftUseCase(new AddImagesToDraftResult([image], 1));
+            var useCase = new StubAddImagesToDraftUseCase(new AddImagesToDraftResult([image], 1, []));
             using var form = new Form1();
             var presenter = new MainPresenter(form, useCase);
             form.AttachPresenter(presenter);
@@ -53,6 +53,21 @@ public sealed class Form1Tests
             Assert.Equal("Draft: 1枚", countLabel.Text);
             Assert.NotEmpty(item.ImageKey);
             Assert.True(imageList.Images.ContainsKey(item.ImageKey));
+        });
+    }
+
+    [Fact]
+    public void RejectedImages_AreRenderedWithFileNameAndReason()
+    {
+        RunInSta(() =>
+        {
+            using var form = new Form1();
+
+            form.DisplayRejectedImages(
+                [new RejectedImageViewModel("large.jpg", "ファイルサイズが10MBを超えています。")]);
+
+            var rejectionList = Assert.IsType<ListBox>(Assert.Single(form.Controls.Find("rejectionListBox", true)));
+            Assert.Equal("large.jpg: ファイルサイズが10MBを超えています。", Assert.Single(rejectionList.Items.Cast<string>()));
         });
     }
 
