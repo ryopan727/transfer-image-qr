@@ -1,0 +1,36 @@
+version: '3'
+
+tasks:
+  default:
+    desc: Restore, build, and test the solution
+    cmds:
+      - task: verify
+
+  restore:
+    desc: Restore solution dependencies
+    cmds:
+      - dotnet restore TransferImageQR.sln
+
+  build:
+    desc: Build production and test code
+    deps: [restore]
+    cmds:
+      - dotnet build TransferImageQR.sln --no-restore
+
+  test:
+    desc: Run the fast unit test suite
+    deps: [build]
+    cmds:
+      - dotnet test tests/TransferImageQR.UnitTests/TransferImageQR.UnitTests.csproj --no-build
+
+  test:unit:
+    desc: Run the fast unit test suite
+    cmds:
+      - task: test
+
+  verify:
+    desc: Restore, build, and run the fast unit test suite
+    cmds:
+      - task: restore
+      - task: build
+      - task: test

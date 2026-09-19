@@ -1,0 +1,49 @@
+
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.8.34330.188
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TransferImageQR", "TransferImageQR\TransferImageQR.csproj", "{8BCD0383-A657-4275-9B49-22F40BD36BF5}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TransferImageQR.Domain", "TransferImageQR.Domain\TransferImageQR.Domain.csproj", "{0BBF25D2-65D4-4D48-AF87-80BDB8BBD5A1}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TransferImageQR.Application", "TransferImageQR.Application\TransferImageQR.Application.csproj", "{FE18A53E-1350-4697-9E15-5094183A9790}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TransferImageQR.Infrastructure", "TransferImageQR.Infrastructure\TransferImageQR.Infrastructure.csproj", "{99962C30-E68A-4B3B-BE52-29E846F1A18D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TransferImageQR.UnitTests", "tests\TransferImageQR.UnitTests\TransferImageQR.UnitTests.csproj", "{5FA80F45-0D29-4078-81A1-11CF99413E00}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{8BCD0383-A657-4275-9B49-22F40BD36BF5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8BCD0383-A657-4275-9B49-22F40BD36BF5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8BCD0383-A657-4275-9B49-22F40BD36BF5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8BCD0383-A657-4275-9B49-22F40BD36BF5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0BBF25D2-65D4-4D48-AF87-80BDB8BBD5A1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0BBF25D2-65D4-4D48-AF87-80BDB8BBD5A1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0BBF25D2-65D4-4D48-AF87-80BDB8BBD5A1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0BBF25D2-65D4-4D48-AF87-80BDB8BBD5A1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FE18A53E-1350-4697-9E15-5094183A9790}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FE18A53E-1350-4697-9E15-5094183A9790}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FE18A53E-1350-4697-9E15-5094183A9790}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FE18A53E-1350-4697-9E15-5094183A9790}.Release|Any CPU.Build.0 = Release|Any CPU
+		{99962C30-E68A-4B3B-BE52-29E846F1A18D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{99962C30-E68A-4B3B-BE52-29E846F1A18D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{99962C30-E68A-4B3B-BE52-29E846F1A18D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{99962C30-E68A-4B3B-BE52-29E846F1A18D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5FA80F45-0D29-4078-81A1-11CF99413E00}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5FA80F45-0D29-4078-81A1-11CF99413E00}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5FA80F45-0D29-4078-81A1-11CF99413E00}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5FA80F45-0D29-4078-81A1-11CF99413E00}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {339BA61F-7533-4B39-BDE7-904D1651D67D}
+	EndGlobalSection
+EndGlobal
