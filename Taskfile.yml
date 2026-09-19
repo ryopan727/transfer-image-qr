@@ -28,6 +28,19 @@ tasks:
     cmds:
       - task: test
 
+  test:integration:
+    desc: Run integration tests against a real in-process Kestrel server
+    deps: [build]
+    cmds:
+      - dotnet test tests/TransferImageQR.IntegrationTests/TransferImageQR.IntegrationTests.csproj --no-build
+
+  test:all:
+    desc: Run all unit, presentation, and integration tests
+    deps: [build]
+    cmds:
+      - dotnet test tests/TransferImageQR.UnitTests/TransferImageQR.UnitTests.csproj --no-build
+      - dotnet test tests/TransferImageQR.IntegrationTests/TransferImageQR.IntegrationTests.csproj --no-build
+
   verify:
     desc: Restore, build, and run the fast unit test suite
     cmds:
