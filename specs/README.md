@@ -20,3 +20,4 @@ This directory stores the version-controlled requirements and verification contr
 | [issue-0005-transfer-session-lifecycle.md](issue-0005-transfer-session-lifecycle.md) | Verified | [Issue #5](https://github.com/ryopan727/transfer-image-qr/issues/5) | Confirm a Draft as a five-minute transfer session with a secure token |
 | [issue-0006-lan-http-server.md](issue-0006-lan-http-server.md) | Verified | [Issue #6](https://github.com/ryopan727/transfer-image-qr/issues/6) | Serve active-session image files over LAN HTTP with Kestrel |
 | [issue-0007-transfer-url-qr-code.md](issue-0007-transfer-url-qr-code.md) | Verified | [Issue #7](https://github.com/ryopan727/transfer-image-qr/issues/7) | Generate and display a QR code for the active LAN transfer URL |
+| [issue-0008-safari-image-gallery.md](issue-0008-safari-image-gallery.md) | Verified | [Issue #8](https://github.com/ryopan727/transfer-image-qr/issues/8) | Provide a responsive image gallery for iPhone Safari |

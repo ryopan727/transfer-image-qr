@@ -117,9 +117,11 @@ public sealed class LanImageHttpServer(
     }
 
     private IResult GetSession(string token) =>
-        sessionProvider.GetActive(token) is null
-            ? Results.NotFound()
-            : Results.Text("Transfer session is active.", "text/plain; charset=utf-8");
+        sessionProvider.GetActive(token) is { } session
+            ? Results.Content(
+                TransferGalleryPageRenderer.Render(session),
+                "text/html; charset=utf-8")
+            : Results.NotFound();
 
     private IResult GetImage(string token, Guid imageId)
     {
