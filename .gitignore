@@ -1,0 +1,6 @@
+.vs/
+**/bin/
+**/obj/
+*.user
+TestResults/
+matsupy-steering-dotnet/
