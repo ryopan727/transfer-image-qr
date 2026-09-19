@@ -46,7 +46,7 @@ public sealed class LanImageHttpServerTests
         using var files = new TemporaryImageDirectory();
         var expected = new Dictionary<string, (byte[] Bytes, string ContentType)>
         {
-            [files.Create("sample.jpg", [0xFF, 0xD8, 0xFF, 0x01])] = ([0xFF, 0xD8, 0xFF, 0x01], "image/jpeg"),
+            [files.Create("写真 sample.jpg", [0xFF, 0xD8, 0xFF, 0x01])] = ([0xFF, 0xD8, 0xFF, 0x01], "image/jpeg"),
             [files.Create("sample.png", [0x89, 0x50, 0x4E, 0x47])] = ([0x89, 0x50, 0x4E, 0x47], "image/png"),
             [files.Create("sample.webp", [0x52, 0x49, 0x46, 0x46])] = ([0x52, 0x49, 0x46, 0x46], "image/webp"),
         };
@@ -73,10 +73,46 @@ public sealed class LanImageHttpServerTests
             var expectation = expected[images[index].FilePath];
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             Assert.Equal(expectation.ContentType, response.Content.Headers.ContentType?.MediaType);
+            Assert.Equal(expectation.Bytes.Length, response.Content.Headers.ContentLength);
+            Assert.Equal("inline", response.Content.Headers.ContentDisposition?.DispositionType);
+            Assert.Equal(images[index].FileName, response.Content.Headers.ContentDisposition?.FileNameStar);
+            Assert.Contains("bytes", response.Headers.AcceptRanges);
             Assert.Equal(
                 expectation.Bytes,
                 await response.Content.ReadAsByteArrayAsync(TestContext.Current.CancellationToken));
         }
+    }
+
+    [Fact]
+    public async Task GetImage_WithRangeHeader_ReturnsOriginalByteRange()
+    {
+        using var files = new TemporaryImageDirectory();
+        byte[] originalBytes = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A];
+        var draft = new TransferDraft();
+        var image = draft.Add(files.Create("range sample.png", originalBytes));
+        var sessionProvider = CreateSessionProvider(draft, new MutableTimeProvider(SessionCreatedAt));
+        var session = sessionProvider.Create().Session;
+        Assert.NotNull(session);
+        await using var server = new LanImageHttpServer(sessionProvider);
+        await server.StartAsync(TestContext.Current.CancellationToken);
+        using var client = CreateClient(server.Port);
+        using var request = new HttpRequestMessage(
+            HttpMethod.Get,
+            $"/transfer/{session.Token}/images/{image.Id}");
+        request.Headers.Range = new RangeHeaderValue(2, 5);
+
+        var response = await client.SendAsync(request, TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.PartialContent, response.StatusCode);
+        Assert.Equal("bytes", response.Content.Headers.ContentRange?.Unit);
+        Assert.Equal(2, response.Content.Headers.ContentRange?.From);
+        Assert.Equal(5, response.Content.Headers.ContentRange?.To);
+        Assert.Equal(originalBytes.Length, response.Content.Headers.ContentRange?.Length);
+        Assert.Equal("inline", response.Content.Headers.ContentDisposition?.DispositionType);
+        Assert.Equal(image.FileName, response.Content.Headers.ContentDisposition?.FileNameStar);
+        Assert.Equal(
+            originalBytes[2..6],
+            await response.Content.ReadAsByteArrayAsync(TestContext.Current.CancellationToken));
     }
 
     [Fact]
