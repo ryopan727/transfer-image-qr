@@ -4,15 +4,18 @@ namespace TransferImageQR.Presentation;
 
 public sealed class MainPresenter(
     IMainView view,
-    IAddImagesToDraftUseCase addImagesToDraftUseCase)
+    IAddImagesToDraftUseCase addImagesToDraftUseCase,
+    IEditDraftUseCase editDraftUseCase)
 {
     private bool _isAdding;
+    private bool _isEditingEnabled = true;
+    private int _draftCount;
 
     public async Task AddDroppedFilesAsync(
         IReadOnlyCollection<string> filePaths,
         CancellationToken cancellationToken = default)
     {
-        if (_isAdding || filePaths.Count == 0)
+        if (!_isEditingEnabled || _isAdding || filePaths.Count == 0)
         {
             return;
         }
@@ -36,7 +39,7 @@ public sealed class MainPresenter(
                 view.AppendDraftImages(viewModels);
             }
 
-            view.SetDraftCount(result.TotalCount);
+            UpdateDraftState(result.TotalCount);
             view.DisplayRejectedImages(result.RejectedImages
                 .Select(rejection => new RejectedImageViewModel(
                     rejection.FileName,
@@ -46,8 +49,55 @@ public sealed class MainPresenter(
         finally
         {
             _isAdding = false;
-            view.SetDropEnabled(true);
+            view.SetDropEnabled(_isEditingEnabled);
         }
+    }
+
+    public void RemoveDraftImage(Guid imageId)
+    {
+        if (!_isEditingEnabled)
+        {
+            return;
+        }
+
+        var result = editDraftUseCase.Remove(imageId);
+        if (result.Changed)
+        {
+            view.RemoveDraftImage(imageId);
+        }
+
+        UpdateDraftState(result.TotalCount);
+    }
+
+    public void ClearDraft()
+    {
+        if (!_isEditingEnabled)
+        {
+            return;
+        }
+
+        var result = editDraftUseCase.Clear();
+        if (result.Changed)
+        {
+            view.ClearDraftImages();
+        }
+
+        UpdateDraftState(result.TotalCount);
+    }
+
+    public void SetDraftEditingEnabled(bool enabled)
+    {
+        _isEditingEnabled = enabled;
+        view.SetDropEnabled(enabled && !_isAdding);
+        view.SetDraftActionsEnabled(enabled && _draftCount > 0);
+        view.SetDraftEditingEnabled(enabled);
+    }
+
+    private void UpdateDraftState(int count)
+    {
+        _draftCount = count;
+        view.SetDraftCount(count);
+        view.SetDraftActionsEnabled(_isEditingEnabled && count > 0);
     }
 
     private static string ToUserMessage(DraftImageRejectionReason reason) =>

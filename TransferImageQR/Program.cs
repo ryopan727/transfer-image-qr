@@ -23,8 +23,9 @@ namespace TransferImageQR
                 draft,
                 thumbnailProvider,
                 fileMetadataProvider);
+            var editDraft = new EditDraftUseCase(draft);
             using var mainForm = new Form1();
-            var presenter = new MainPresenter(mainForm, addImagesToDraft);
+            var presenter = new MainPresenter(mainForm, addImagesToDraft, editDraft);
             mainForm.AttachPresenter(presenter);
 
             System.Windows.Forms.Application.Run(mainForm);
