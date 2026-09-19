@@ -1,12 +1,14 @@
 using TransferImageQR.Domain.Drafts;
 using TransferImageQR.Domain.Sessions;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace TransferImageQR.Application.Sessions;
 
 public sealed class TransferSessionUseCase(
     TransferDraft draft,
     ISessionTokenGenerator tokenGenerator,
-    TimeProvider timeProvider) : ITransferSessionUseCase
+    TimeProvider timeProvider) : ITransferSessionUseCase, IActiveTransferSessionProvider
 {
     private readonly object _sync = new();
     private TransferSession? _currentSession;
@@ -52,6 +54,26 @@ public sealed class TransferSessionUseCase(
         }
     }
 
+    public TransferSession? GetActive(string token)
+    {
+        if (string.IsNullOrWhiteSpace(token))
+        {
+            return null;
+        }
+
+        lock (_sync)
+        {
+            if (_currentSession is null ||
+                _currentSession.GetState(timeProvider.GetUtcNow()) != TransferSessionState.Active ||
+                !TokensMatch(_currentSession.Token, token))
+            {
+                return null;
+            }
+
+            return _currentSession;
+        }
+    }
+
     public void StartNewTransfer()
     {
         lock (_sync)
@@ -59,5 +81,13 @@ public sealed class TransferSessionUseCase(
             _currentSession = null;
             draft.Reset();
         }
+    }
+
+    private static bool TokensMatch(string expected, string provided)
+    {
+        var expectedBytes = Encoding.UTF8.GetBytes(expected);
+        var providedBytes = Encoding.UTF8.GetBytes(provided);
+        return expectedBytes.Length == providedBytes.Length &&
+               CryptographicOperations.FixedTimeEquals(expectedBytes, providedBytes);
     }
 }

@@ -3,6 +3,7 @@ using TransferImageQR.Domain.Drafts;
 using TransferImageQR.Infrastructure.Images;
 using TransferImageQR.Infrastructure.Files;
 using TransferImageQR.Infrastructure.Security;
+using TransferImageQR.Infrastructure.Http;
 using TransferImageQR.Application.Sessions;
 using TransferImageQR.Presentation;
 
@@ -30,11 +31,20 @@ namespace TransferImageQR
                 draft,
                 new CryptographicSessionTokenGenerator(),
                 TimeProvider.System);
-            using var mainForm = new Form1();
-            var presenter = new MainPresenter(mainForm, addImagesToDraft, editDraft, transferSession);
-            mainForm.AttachPresenter(presenter);
+            var httpServer = new LanImageHttpServer(transferSession);
+            httpServer.StartAsync().GetAwaiter().GetResult();
 
-            System.Windows.Forms.Application.Run(mainForm);
+            try
+            {
+                using var mainForm = new Form1();
+                var presenter = new MainPresenter(mainForm, addImagesToDraft, editDraft, transferSession);
+                mainForm.AttachPresenter(presenter);
+                System.Windows.Forms.Application.Run(mainForm);
+            }
+            finally
+            {
+                httpServer.DisposeAsync().AsTask().GetAwaiter().GetResult();
+            }
         }
     }
 }

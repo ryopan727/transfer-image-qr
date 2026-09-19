@@ -82,6 +82,25 @@ public sealed class TransferSessionUseCaseTests
         Assert.Equal(TransferSessionState.Expired, sut.GetCurrentStatus()?.State);
     }
 
+    [Fact]
+    public void GetActive_RequiresMatchingTokenAndActiveState()
+    {
+        var draft = new TransferDraft();
+        draft.Add(@"C:\images\first.jpg");
+        var timeProvider = new StubTimeProvider(Now);
+        var sut = new TransferSessionUseCase(
+            draft,
+            new StubTokenGenerator("generated-token"),
+            timeProvider);
+        var session = Assert.IsType<TransferSession>(sut.Create().Session);
+
+        Assert.Same(session, sut.GetActive("generated-token"));
+        Assert.Null(sut.GetActive("wrong-token"));
+
+        timeProvider.UtcNow = session.ExpiresAt;
+        Assert.Null(sut.GetActive("generated-token"));
+    }
+
     private sealed class StubTokenGenerator(string token) : ISessionTokenGenerator
     {
         public bool WasCalled { get; private set; }
