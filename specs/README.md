@@ -22,3 +22,4 @@ This directory stores the version-controlled requirements and verification contr
 | [issue-0007-transfer-url-qr-code.md](issue-0007-transfer-url-qr-code.md) | Verified | [Issue #7](https://github.com/ryopan727/transfer-image-qr/issues/7) | Generate and display a QR code for the active LAN transfer URL |
 | [issue-0008-safari-image-gallery.md](issue-0008-safari-image-gallery.md) | Verified | [Issue #8](https://github.com/ryopan727/transfer-image-qr/issues/8) | Provide a responsive image gallery for iPhone Safari |
 | [issue-0009-safari-original-image.md](issue-0009-safari-original-image.md) | Verified | [Issue #9](https://github.com/ryopan727/transfer-image-qr/issues/9) | Open original images individually in Safari for standard save operations |
+| [issue-0010-expired-session-page.md](issue-0010-expired-session-page.md) | Verified | [Issue #10](https://github.com/ryopan727/transfer-image-qr/issues/10) | Reject expired sessions and show a user-facing expiration page |

@@ -73,6 +73,7 @@ public sealed class LanImageHttpServerTests
             var expectation = expected[images[index].FilePath];
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             Assert.Equal(expectation.ContentType, response.Content.Headers.ContentType?.MediaType);
+            Assert.True(response.Headers.CacheControl?.NoStore);
             Assert.Equal(expectation.Bytes.Length, response.Content.Headers.ContentLength);
             Assert.Equal("inline", response.Content.Headers.ContentDisposition?.DispositionType);
             Assert.Equal(images[index].FileName, response.Content.Headers.ContentDisposition?.FileNameStar);
@@ -138,6 +139,7 @@ public sealed class LanImageHttpServerTests
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Equal("text/html", response.Content.Headers.ContentType?.MediaType);
         Assert.Equal("utf-8", response.Content.Headers.ContentType?.CharSet);
+        Assert.True(response.Headers.CacheControl?.NoStore);
         Assert.Contains("<html lang=\"ja\">", html);
         Assert.Contains("name=\"viewport\" content=\"width=device-width, initial-scale=1\"", html);
         Assert.Contains("grid-template-columns: repeat(auto-fit, minmax(", html);
@@ -188,7 +190,7 @@ public sealed class LanImageHttpServerTests
     }
 
     [Fact]
-    public async Task GetImage_WithoutActiveMatchingToken_ReturnsNotFound()
+    public async Task GetTransferRoutes_DistinguishNotFoundAndExpiredSessions()
     {
         using var files = new TemporaryImageDirectory();
         var draft = new TransferDraft();
@@ -223,16 +225,41 @@ public sealed class LanImageHttpServerTests
                 TestContext.Current.CancellationToken)).StatusCode);
 
         timeProvider.UtcNow = session.ExpiresAt;
-        Assert.Equal(
-            HttpStatusCode.NotFound,
-            (await client.GetAsync(
-                $"/transfer/{session.Token}",
-                TestContext.Current.CancellationToken)).StatusCode);
-        Assert.Equal(
-            HttpStatusCode.NotFound,
-            (await client.GetAsync(
-                $"/transfer/{session.Token}/images/{image.Id}",
-                TestContext.Current.CancellationToken)).StatusCode);
+        var expiredSessionResponse = await client.GetAsync(
+            $"/transfer/{session.Token}",
+            TestContext.Current.CancellationToken);
+        var expiredSessionHtml = await expiredSessionResponse.Content.ReadAsStringAsync(
+            TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.Gone, expiredSessionResponse.StatusCode);
+        Assert.Equal("text/html", expiredSessionResponse.Content.Headers.ContentType?.MediaType);
+        Assert.Equal("utf-8", expiredSessionResponse.Content.Headers.ContentType?.CharSet);
+        Assert.True(expiredSessionResponse.Headers.CacheControl?.NoStore);
+        Assert.Contains("この転送は期限切れです", expiredSessionHtml);
+        Assert.Contains("PCで新しい転送を作成", expiredSessionHtml);
+        Assert.Contains("name=\"viewport\" content=\"width=device-width, initial-scale=1\"", expiredSessionHtml);
+        Assert.DoesNotContain("class=\"gallery\"", expiredSessionHtml);
+        Assert.DoesNotContain(session.Token, expiredSessionHtml);
+        Assert.DoesNotContain(image.FileName, expiredSessionHtml);
+
+        var expiredImageResponse = await client.GetAsync(
+            $"/transfer/{session.Token}/images/{image.Id}",
+            TestContext.Current.CancellationToken);
+        var expiredImageHtml = await expiredImageResponse.Content.ReadAsStringAsync(
+            TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.Gone, expiredImageResponse.StatusCode);
+        Assert.Equal("text/html", expiredImageResponse.Content.Headers.ContentType?.MediaType);
+        Assert.True(expiredImageResponse.Headers.CacheControl?.NoStore);
+        Assert.Contains("この転送は期限切れです", expiredImageHtml);
+        Assert.False((await expiredImageResponse.Content.ReadAsByteArrayAsync(
+            TestContext.Current.CancellationToken)).SequenceEqual(new byte[] { 1, 2, 3 }));
+
+        var wrongExpiredResponse = await client.GetAsync(
+            "/transfer/wrong-token",
+            TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.NotFound, wrongExpiredResponse.StatusCode);
+        Assert.DoesNotContain(
+            "期限切れ",
+            await wrongExpiredResponse.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
     }
 
     private static TransferSessionUseCase CreateSessionProvider(

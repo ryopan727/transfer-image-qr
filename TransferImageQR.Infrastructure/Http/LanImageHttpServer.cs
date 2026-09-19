@@ -13,7 +13,7 @@ using TransferImageQR.Application.Transfers;
 namespace TransferImageQR.Infrastructure.Http;
 
 public sealed class LanImageHttpServer(
-    IActiveTransferSessionProvider sessionProvider,
+    ITransferSessionAccessProvider sessionProvider,
     int requestedPort = 0) : IAsyncDisposable, IHttpServerEndpoint
 {
     private readonly SemaphoreSlim _lifecycleGate = new(1, 1);
@@ -111,23 +111,36 @@ public sealed class LanImageHttpServer(
     {
         application.MapGet(
             "/transfer/{token}",
-            (string token) => GetSession(token));
+            (HttpContext context, string token) => GetSession(context, token));
         application.MapGet(
             "/transfer/{token}/images/{imageId:guid}",
             (HttpContext context, string token, Guid imageId) => GetImage(context, token, imageId));
     }
 
-    private IResult GetSession(string token) =>
-        sessionProvider.GetActive(token) is { } session
-            ? Results.Content(
-                TransferGalleryPageRenderer.Render(session),
-                "text/html; charset=utf-8")
-            : Results.NotFound();
+    private IResult GetSession(HttpContext context, string token)
+    {
+        context.Response.Headers.CacheControl = "no-store";
+        var access = sessionProvider.GetAccess(token);
+        return access.Status switch
+        {
+            TransferSessionAccessStatus.Active when access.Session is not null => Results.Content(
+                TransferGalleryPageRenderer.Render(access.Session),
+                "text/html; charset=utf-8"),
+            TransferSessionAccessStatus.Expired => ExpiredPage(),
+            _ => Results.NotFound(),
+        };
+    }
 
     private IResult GetImage(HttpContext context, string token, Guid imageId)
     {
-        var session = sessionProvider.GetActive(token);
-        var image = session?.Images.FirstOrDefault(candidate => candidate.Id == imageId);
+        context.Response.Headers.CacheControl = "no-store";
+        var access = sessionProvider.GetAccess(token);
+        if (access.Status == TransferSessionAccessStatus.Expired)
+        {
+            return ExpiredPage();
+        }
+
+        var image = access.Session?.Images.FirstOrDefault(candidate => candidate.Id == imageId);
         if (image is null || !File.Exists(image.FilePath) || !TryGetContentType(image.FilePath, out var contentType))
         {
             return Results.NotFound();
@@ -144,6 +157,12 @@ public sealed class LanImageHttpServer(
             contentType,
             enableRangeProcessing: true);
     }
+
+    private static IResult ExpiredPage() =>
+        Results.Content(
+            TransferExpiredPageRenderer.Render(),
+            "text/html; charset=utf-8",
+            statusCode: StatusCodes.Status410Gone);
 
     private static bool TryGetContentType(string filePath, out string contentType)
     {

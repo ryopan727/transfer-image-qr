@@ -8,7 +8,7 @@ namespace TransferImageQR.Application.Sessions;
 public sealed class TransferSessionUseCase(
     TransferDraft draft,
     ISessionTokenGenerator tokenGenerator,
-    TimeProvider timeProvider) : ITransferSessionUseCase, IActiveTransferSessionProvider
+    TimeProvider timeProvider) : ITransferSessionUseCase, ITransferSessionAccessProvider
 {
     private readonly object _sync = new();
     private TransferSession? _currentSession;
@@ -54,23 +54,24 @@ public sealed class TransferSessionUseCase(
         }
     }
 
-    public TransferSession? GetActive(string token)
+    public TransferSessionAccess GetAccess(string token)
     {
         if (string.IsNullOrWhiteSpace(token))
         {
-            return null;
+            return TransferSessionAccess.NotFound;
         }
 
         lock (_sync)
         {
             if (_currentSession is null ||
-                _currentSession.GetState(timeProvider.GetUtcNow()) != TransferSessionState.Active ||
                 !TokensMatch(_currentSession.Token, token))
             {
-                return null;
+                return TransferSessionAccess.NotFound;
             }
 
-            return _currentSession;
+            return _currentSession.GetState(timeProvider.GetUtcNow()) == TransferSessionState.Active
+                ? TransferSessionAccess.Active(_currentSession)
+                : TransferSessionAccess.Expired;
         }
     }
 

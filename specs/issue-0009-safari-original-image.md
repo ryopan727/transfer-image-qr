@@ -46,7 +46,7 @@ iPhone利用者がSafariの画像一覧から1枚を選び、変換されてい�
 - FR-3: 画像応答は`Content-Disposition: inline`とUTF-8の元ファイル名を持つ。
 - FR-4: 通常GETは元ファイルと同一のバイト列およびContent-Lengthを返す。
 - FR-5: 有効な単一Range Requestには206、`Content-Range`、要求範囲と一致する元バイトを返す。
-- FR-6: 無効Token、Session外の画像ID、Expired Session、消失ファイルは404を返す。
+- FR-6: 無効Token、Session外の画像ID、消失ファイルは404を返す。Expired SessionはMVP-010の410期限切れ画面契約に従う。
 
 ## Non-functional Requirements / Constraints
 
@@ -173,3 +173,4 @@ Scenario: SC-4 元ファイル名をSafariへ渡す
 | --- | --- | --- |
 | 2026-09-20 | Initial Ready specification | Issue #9とMVP-006/008の実装差分からinline表示・元画像不変の契約を確定 |
 | 2026-09-20 | Marked Verified | inline元画像配信、Range、Integration、build、format、起動確認を完了 |
+| 2026-09-20 | Updated expiration contract | MVP-010で正しいExpired Tokenを410期限切れ画面へ拡張 |
