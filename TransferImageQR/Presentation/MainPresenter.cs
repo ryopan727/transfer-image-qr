@@ -1,6 +1,7 @@
 using TransferImageQR.Application.Drafts;
 using TransferImageQR.Application.Sessions;
 using TransferImageQR.Domain.Sessions;
+using TransferImageQR.Application.Transfers;
 
 namespace TransferImageQR.Presentation;
 
@@ -8,11 +9,13 @@ public sealed class MainPresenter(
     IMainView view,
     IAddImagesToDraftUseCase addImagesToDraftUseCase,
     IEditDraftUseCase editDraftUseCase,
-    ITransferSessionUseCase transferSessionUseCase)
+    ITransferSessionUseCase transferSessionUseCase,
+    ITransferQrCodeService transferQrCodeService)
 {
     private bool _isAdding;
     private bool _isEditingEnabled = true;
     private int _draftCount;
+    private TransferQrCode? _transferQrCode;
 
     public async Task AddDroppedFilesAsync(
         IReadOnlyCollection<string> filePaths,
@@ -111,6 +114,9 @@ public sealed class MainPresenter(
             return;
         }
 
+        _transferQrCode = result.Session is null
+            ? null
+            : transferQrCodeService.Create(result.Session.Token);
         SetDraftEditingEnabled(false);
         RefreshTransferSessionState();
     }
@@ -126,7 +132,9 @@ public sealed class MainPresenter(
 
         view.DisplayTransferSession(new TransferSessionViewModel(
             status.State == TransferSessionState.Expired,
-            status.ExpiresAt));
+            status.ExpiresAt,
+            _transferQrCode?.Url.AbsoluteUri,
+            _transferQrCode?.PngBytes));
     }
 
     public void StartNewTransfer()
@@ -137,6 +145,7 @@ public sealed class MainPresenter(
         }
 
         transferSessionUseCase.StartNewTransfer();
+        _transferQrCode = null;
         view.ClearDraftImages();
         view.DisplayRejectedImages([]);
         UpdateDraftState(0);

@@ -7,6 +7,7 @@ namespace TransferImageQR
         private MainPresenter? _presenter;
         private bool _draftActionsEnabled;
         private bool _draftEditingEnabled = true;
+        private string? _displayedQrUrl;
 
         public Form1()
         {
@@ -119,6 +120,36 @@ namespace TransferImageQR
             newTransferButton.Visible = true;
             newTransferButton.Enabled = true;
             sessionStateTimer.Enabled = !session.IsExpired;
+            draftListView.Visible = false;
+            emptyDraftLabel.Visible = false;
+            qrPanel.Visible = true;
+            transferUrlTextBox.Text = session.TransferUrl ?? string.Empty;
+
+            if (session.IsExpired)
+            {
+                qrPictureBox.Visible = false;
+                qrStatusLabel.Text = "QRコードの有効期限が切れました。";
+                qrStatusLabel.Visible = true;
+            }
+            else if (session.TransferUrl is null || session.QrCodePng is null)
+            {
+                qrPictureBox.Visible = false;
+                qrStatusLabel.Text = "LAN用IPv4アドレスを取得できません。";
+                qrStatusLabel.Visible = true;
+            }
+            else
+            {
+                if (!string.Equals(_displayedQrUrl, session.TransferUrl, StringComparison.Ordinal))
+                {
+                    using var stream = new MemoryStream(session.QrCodePng, writable: false);
+                    using var decoded = Image.FromStream(stream);
+                    ReplaceQrImage(new Bitmap(decoded));
+                    _displayedQrUrl = session.TransferUrl;
+                }
+
+                qrPictureBox.Visible = true;
+                qrStatusLabel.Visible = false;
+            }
         }
 
         public void DisplayDraftState()
@@ -128,6 +159,12 @@ namespace TransferImageQR
             newTransferButton.Visible = false;
             newTransferButton.Enabled = false;
             sessionStateTimer.Enabled = false;
+            qrPanel.Visible = false;
+            draftListView.Visible = true;
+            emptyDraftLabel.Visible = draftListView.Items.Count == 0;
+            transferUrlTextBox.Clear();
+            ReplaceQrImage(null);
+            _displayedQrUrl = null;
         }
 
         private void DropPanel_DragEnter(object? sender, DragEventArgs e)
@@ -183,6 +220,13 @@ namespace TransferImageQR
             removeDraftImageButton.Enabled = canEditDraft && draftListView.SelectedItems.Count == 1;
             clearDraftButton.Enabled = canEditDraft;
             createQrButton.Enabled = canEditDraft;
+        }
+
+        private void ReplaceQrImage(Image? image)
+        {
+            var previous = qrPictureBox.Image;
+            qrPictureBox.Image = image;
+            previous?.Dispose();
         }
     }
 }

@@ -3,6 +3,7 @@ using System.Windows.Forms;
 using SkiaSharp;
 using TransferImageQR.Application.Drafts;
 using TransferImageQR.Application.Sessions;
+using TransferImageQR.Application.Transfers;
 using TransferImageQR.Domain.Drafts;
 using TransferImageQR.Domain.Sessions;
 using TransferImageQR.Presentation;
@@ -47,7 +48,8 @@ public sealed class Form1Tests
                 form,
                 useCase,
                 new StubEditDraftUseCase(),
-                new StubTransferSessionUseCase());
+                new StubTransferSessionUseCase(),
+                new StubTransferQrCodeService());
             form.AttachPresenter(presenter);
 
             presenter.AddDroppedFilesAsync([image.FilePath]).GetAwaiter().GetResult();
@@ -127,8 +129,13 @@ public sealed class Form1Tests
 
             var stateLabel = Assert.IsType<Label>(Assert.Single(form.Controls.Find("sessionStateLabel", true)));
             var newTransferButton = Assert.IsType<Button>(Assert.Single(form.Controls.Find("newTransferButton", true)));
+            var qrPicture = Assert.IsType<PictureBox>(Assert.Single(form.Controls.Find("qrPictureBox", true)));
+            var qrStatus = Assert.IsType<Label>(Assert.Single(form.Controls.Find("qrStatusLabel", true)));
             Assert.Contains("Active", stateLabel.Text);
             Assert.True(newTransferButton.Visible);
+            Assert.False(qrPicture.Visible);
+            Assert.True(qrStatus.Visible);
+            Assert.Contains("LAN用IPv4", qrStatus.Text);
 
             form.DisplayTransferSession(new TransferSessionViewModel(true, expiresAt));
             Assert.Contains("Expired", stateLabel.Text);
@@ -136,6 +143,38 @@ public sealed class Form1Tests
             form.DisplayDraftState();
             Assert.Equal("状態: Draft", stateLabel.Text);
             Assert.False(newTransferButton.Visible);
+        });
+    }
+
+    [Fact]
+    public void TransferSessionQr_RendersUrlAndReleasesImageWhenReturningToDraft()
+    {
+        RunInSta(() =>
+        {
+            using var form = new Form1();
+            form.Show();
+            System.Windows.Forms.Application.DoEvents();
+            var expiresAt = new DateTimeOffset(2026, 9, 20, 12, 5, 0, TimeSpan.Zero);
+            const string url = "http://192.168.1.20:51846/transfer/current-token";
+
+            form.DisplayTransferSession(new TransferSessionViewModel(false, expiresAt, url, CreatePng()));
+
+            var qrPanel = Assert.IsType<Panel>(Assert.Single(form.Controls.Find("qrPanel", true)));
+            var qrPicture = Assert.IsType<PictureBox>(Assert.Single(form.Controls.Find("qrPictureBox", true)));
+            var urlText = Assert.IsType<TextBox>(Assert.Single(form.Controls.Find("transferUrlTextBox", true)));
+            Assert.True(qrPanel.Visible);
+            Assert.True(qrPicture.Visible);
+            Assert.NotNull(qrPicture.Image);
+            Assert.Equal(url, urlText.Text);
+
+            form.DisplayTransferSession(new TransferSessionViewModel(true, expiresAt, url, CreatePng()));
+            var qrStatus = Assert.IsType<Label>(Assert.Single(form.Controls.Find("qrStatusLabel", true)));
+            Assert.False(qrPicture.Visible);
+            Assert.Contains("有効期限", qrStatus.Text);
+
+            form.DisplayDraftState();
+            Assert.False(qrPanel.Visible);
+            Assert.Null(qrPicture.Image);
         });
     }
 
@@ -150,7 +189,8 @@ public sealed class Form1Tests
                 form,
                 new StubAddImagesToDraftUseCase(new AddImagesToDraftResult([], 1, [])),
                 new StubEditDraftUseCase(),
-                sessionUseCase);
+                sessionUseCase,
+                new StubTransferQrCodeService());
             form.AttachPresenter(presenter);
             form.Show();
             form.SetDraftActionsEnabled(true);
@@ -266,5 +306,10 @@ public sealed class Form1Tests
                 createResult.Session.ExpiresAt);
 
         public void StartNewTransfer() => StartNewTransferCalled = true;
+    }
+
+    private sealed class StubTransferQrCodeService : ITransferQrCodeService
+    {
+        public TransferQrCode? Create(string sessionToken) => null;
     }
 }
