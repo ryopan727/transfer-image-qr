@@ -1,5 +1,6 @@
 using SkiaSharp;
 using TransferImageQR.Application.Drafts;
+using TransferImageQR.Domain.Drafts;
 
 namespace TransferImageQR.Infrastructure.Images;
 
@@ -27,7 +28,13 @@ public sealed class SkiaImageThumbnailProvider : IImageThumbnailProvider
     {
         try
         {
-            using var source = SKBitmap.Decode(filePath);
+            using var codec = SKCodec.Create(filePath);
+            if (codec is null || !TryMapFormat(codec.EncodedFormat, out var detectedFormat))
+            {
+                return ImageThumbnailResult.Failed;
+            }
+
+            using var source = SKBitmap.Decode(codec);
             if (source is null || source.Width <= 0 || source.Height <= 0)
             {
                 return ImageThumbnailResult.Failed;
@@ -52,7 +59,7 @@ public sealed class SkiaImageThumbnailProvider : IImageThumbnailProvider
             using var encoded = image.Encode(SKEncodedImageFormat.Png, quality: 100);
             return encoded is null
                 ? ImageThumbnailResult.Failed
-                : ImageThumbnailResult.Succeeded(encoded.ToArray());
+                : ImageThumbnailResult.Succeeded(encoded.ToArray(), detectedFormat);
         }
         catch (Exception exception) when (
             exception is IOException or
@@ -61,6 +68,25 @@ public sealed class SkiaImageThumbnailProvider : IImageThumbnailProvider
             InvalidOperationException)
         {
             return ImageThumbnailResult.Failed;
+        }
+    }
+
+    private static bool TryMapFormat(SKEncodedImageFormat format, out ImageFileFormat imageFileFormat)
+    {
+        switch (format)
+        {
+            case SKEncodedImageFormat.Jpeg:
+                imageFileFormat = ImageFileFormat.Jpeg;
+                return true;
+            case SKEncodedImageFormat.Png:
+                imageFileFormat = ImageFileFormat.Png;
+                return true;
+            case SKEncodedImageFormat.Webp:
+                imageFileFormat = ImageFileFormat.WebP;
+                return true;
+            default:
+                imageFileFormat = default;
+                return false;
         }
     }
 }

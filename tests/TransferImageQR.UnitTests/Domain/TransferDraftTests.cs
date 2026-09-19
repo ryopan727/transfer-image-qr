@@ -33,4 +33,20 @@ public sealed class TransferDraftTests
         Assert.Equal("existing.webp", draft.Images[0].FileName);
         Assert.Equal("additional.jpeg", draft.Images[1].FileName);
     }
+
+    [Fact]
+    public void TryAdd_WhenDraftAlreadyContainsTwentyImages_RejectsTheTwentyFirst()
+    {
+        var draft = new TransferDraft();
+        for (var index = 0; index < TransferDraft.MaximumImageCount; index++)
+        {
+            Assert.True(draft.TryAdd($@"C:\images\image-{index}.jpg", out _));
+        }
+
+        var added = draft.TryAdd(@"C:\images\image-21.jpg", out var image);
+
+        Assert.False(added);
+        Assert.Null(image);
+        Assert.Equal(20, draft.Images.Count);
+    }
 }

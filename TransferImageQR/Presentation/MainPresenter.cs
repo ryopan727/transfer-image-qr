@@ -37,6 +37,11 @@ public sealed class MainPresenter(
             }
 
             view.SetDraftCount(result.TotalCount);
+            view.DisplayRejectedImages(result.RejectedImages
+                .Select(rejection => new RejectedImageViewModel(
+                    rejection.FileName,
+                    ToUserMessage(rejection.Reason)))
+                .ToArray());
         }
         finally
         {
@@ -44,4 +49,15 @@ public sealed class MainPresenter(
             view.SetDropEnabled(true);
         }
     }
+
+    private static string ToUserMessage(DraftImageRejectionReason reason) =>
+        reason switch
+        {
+            DraftImageRejectionReason.UnsupportedFormat => "対応していない形式です。",
+            DraftImageRejectionReason.FileTooLarge => "ファイルサイズが10MBを超えています。",
+            DraftImageRejectionReason.DraftLimitReached => "Draftは最大20枚です。",
+            DraftImageRejectionReason.UnreadableImage => "画像を読み込めません。",
+            DraftImageRejectionReason.FileFormatMismatch => "拡張子と画像形式が一致しません。",
+            _ => "画像を追加できません。",
+        };
 }

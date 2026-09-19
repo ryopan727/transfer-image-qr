@@ -50,6 +50,18 @@ namespace TransferImageQR
                 : "画像を読み込んでいます…";
         }
 
+        public void DisplayRejectedImages(IReadOnlyCollection<RejectedImageViewModel> images)
+        {
+            rejectionListBox.Items.Clear();
+            foreach (var image in images)
+            {
+                rejectionListBox.Items.Add($"{image.FileName}: {image.Message}");
+            }
+
+            rejectionTitleLabel.Visible = images.Count > 0;
+            rejectionListBox.Visible = images.Count > 0;
+        }
+
         private void DropPanel_DragEnter(object? sender, DragEventArgs e)
         {
             e.Effect = _presenter is not null && e.Data?.GetDataPresent(DataFormats.FileDrop) == true

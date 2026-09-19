@@ -7,4 +7,6 @@ public interface IMainView
     void SetDraftCount(int count);
 
     void SetDropEnabled(bool enabled);
+
+    void DisplayRejectedImages(IReadOnlyCollection<RejectedImageViewModel> images);
 }

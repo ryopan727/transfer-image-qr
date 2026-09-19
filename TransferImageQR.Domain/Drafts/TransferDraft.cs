@@ -2,14 +2,32 @@ namespace TransferImageQR.Domain.Drafts;
 
 public sealed class TransferDraft
 {
+    public const int MaximumImageCount = 20;
+
     private readonly List<DraftImage> _images = [];
 
     public IReadOnlyList<DraftImage> Images => _images;
 
     public DraftImage Add(string filePath)
     {
-        var image = new DraftImage(filePath);
+        if (!TryAdd(filePath, out var image))
+        {
+            throw new InvalidOperationException($"A draft cannot contain more than {MaximumImageCount} images.");
+        }
+
+        return image!;
+    }
+
+    public bool TryAdd(string filePath, out DraftImage? image)
+    {
+        if (_images.Count >= MaximumImageCount)
+        {
+            image = null;
+            return false;
+        }
+
+        image = new DraftImage(filePath);
         _images.Add(image);
-        return image;
+        return true;
     }
 }

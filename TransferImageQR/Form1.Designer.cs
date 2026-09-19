@@ -38,6 +38,8 @@ namespace TransferImageQR
             draftListView = new ListView();
             draftImageList = new ImageList(components);
             emptyDraftLabel = new Label();
+            rejectionTitleLabel = new Label();
+            rejectionListBox = new ListBox();
             dropPanel.SuspendLayout();
             SuspendLayout();
             //
@@ -142,19 +144,48 @@ namespace TransferImageQR
             emptyDraftLabel.TabIndex = 5;
             emptyDraftLabel.Text = "Draftに画像はまだありません。";
             //
+            // rejectionTitleLabel
+            //
+            rejectionTitleLabel.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
+            rejectionTitleLabel.AutoSize = true;
+            rejectionTitleLabel.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point);
+            rejectionTitleLabel.ForeColor = Color.Firebrick;
+            rejectionTitleLabel.Location = new Point(36, 614);
+            rejectionTitleLabel.Name = "rejectionTitleLabel";
+            rejectionTitleLabel.Size = new Size(103, 15);
+            rejectionTitleLabel.TabIndex = 6;
+            rejectionTitleLabel.Text = "追加できない画像";
+            rejectionTitleLabel.Visible = false;
+            //
+            // rejectionListBox
+            //
+            rejectionListBox.AccessibleName = "追加できない画像一覧";
+            rejectionListBox.Anchor = AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+            rejectionListBox.ForeColor = Color.Firebrick;
+            rejectionListBox.FormattingEnabled = true;
+            rejectionListBox.HorizontalScrollbar = true;
+            rejectionListBox.ItemHeight = 15;
+            rejectionListBox.Location = new Point(36, 636);
+            rejectionListBox.Name = "rejectionListBox";
+            rejectionListBox.Size = new Size(828, 64);
+            rejectionListBox.TabIndex = 7;
+            rejectionListBox.Visible = false;
+            //
             // Form1
             //
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             BackColor = SystemColors.Window;
-            ClientSize = new Size(900, 640);
+            ClientSize = new Size(900, 720);
+            Controls.Add(rejectionListBox);
+            Controls.Add(rejectionTitleLabel);
             Controls.Add(emptyDraftLabel);
             Controls.Add(draftListView);
             Controls.Add(draftCountLabel);
             Controls.Add(dropPanel);
             Controls.Add(statusLabel);
             Controls.Add(headingLabel);
-            MinimumSize = new Size(720, 560);
+            MinimumSize = new Size(720, 640);
             Name = "mainForm";
             StartPosition = FormStartPosition.CenterScreen;
             Text = "TransferImageQR";
@@ -176,5 +207,7 @@ namespace TransferImageQR
         private ListView draftListView;
         private ImageList draftImageList;
         private Label emptyDraftLabel;
+        private Label rejectionTitleLabel;
+        private ListBox rejectionListBox;
     }
 }
