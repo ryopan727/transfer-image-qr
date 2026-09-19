@@ -2,7 +2,7 @@
 
 Windows PC上の画像を、クラウドやNASを経由せず、同一LAN上のiPhoneへ渡すためのC# / .NET 8 Windows Formsアプリです。
 
-現在はMVP-001のアプリケーション基盤までを実装しています。画像のドラッグ＆ドロップ、QRコード生成、HTTP配信は後続Issueで追加します。
+現在はMVP-002まで実装しており、JPEG、PNG、WebPをドラッグ＆ドロップしてDraftのサムネイル一覧へ追加できます。サイズ・枚数制限、QRコード生成、HTTP配信は後続Issueで追加します。
 
 ## Requirements
 
@@ -30,6 +30,8 @@ dotnet test TransferImageQR.sln --no-build
 ```powershell
 dotnet run --project TransferImageQR/TransferImageQR.csproj
 ```
+
+起動後、「画像をここにドロップ」と表示された領域へ画像ファイルをドロップします。複数ファイルを同時に追加でき、追加操作を繰り返すと同じDraftへ追記されます。
 
 ## Project structure
 

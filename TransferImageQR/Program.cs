@@ -1,3 +1,8 @@
+using TransferImageQR.Application.Drafts;
+using TransferImageQR.Domain.Drafts;
+using TransferImageQR.Infrastructure.Images;
+using TransferImageQR.Presentation;
+
 namespace TransferImageQR
 {
     internal static class Program
@@ -9,7 +14,15 @@ namespace TransferImageQR
         static void Main()
         {
             ApplicationConfiguration.Initialize();
-            System.Windows.Forms.Application.Run(new Form1());
+
+            var draft = new TransferDraft();
+            var thumbnailProvider = new SkiaImageThumbnailProvider();
+            var addImagesToDraft = new AddImagesToDraftUseCase(draft, thumbnailProvider);
+            using var mainForm = new Form1();
+            var presenter = new MainPresenter(mainForm, addImagesToDraft);
+            mainForm.AttachPresenter(presenter);
+
+            System.Windows.Forms.Application.Run(mainForm);
         }
     }
 }
