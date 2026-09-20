@@ -183,7 +183,7 @@ public sealed class Form1Tests
     }
 
     [Fact]
-    public void BackgroundRendering_PreservesSourceAlphaAndKeepsForegroundPanelsOpaque()
+    public void BackgroundRendering_ShowsBackgroundThroughDraftSurfacesAndKeepsQrOpaque()
     {
         RunInSta(() =>
         {
@@ -200,9 +200,64 @@ public sealed class Form1Tests
             Assert.InRange(backgroundPixel.G, 115, 140);
             Assert.InRange(backgroundPixel.B, 115, 140);
             var dropPanel = Assert.IsType<Panel>(Assert.Single(form.Controls.Find("dropPanel", true)));
-            Assert.Equal(Color.FromArgb(245, 248, 252), dropPanel.BackColor);
+            Assert.InRange(dropPanel.BackColor.A, 1, 254);
+            var draftList = Assert.IsType<ListView>(Assert.Single(form.Controls.Find("draftListView", true)));
+            var listBackground = Assert.IsType<Bitmap>(draftList.BackgroundImage);
+            Assert.Equal(draftList.ClientSize, listBackground.Size);
             var qrPanel = Assert.IsType<Panel>(Assert.Single(form.Controls.Find("qrPanel", true)));
             Assert.Equal(Color.White, qrPanel.BackColor);
+            Assert.Equal(255, qrPanel.BackColor.A);
+        });
+    }
+
+    [Fact]
+    public void ClearBackground_RestoresOpaqueDraftSurfacesWithoutLosingDraftItems()
+    {
+        RunInSta(() =>
+        {
+            using var form = new Form1();
+            var image = new DraftImageViewModel(
+                Guid.NewGuid(),
+                @"C:\images\sample.png",
+                "sample.png",
+                CreatePng());
+            form.AppendDraftImages([image]);
+            form.ApplyBackground(new BackgroundViewModel(CreateTransparentPng(), 80, 100, 0, 0));
+            form.Show();
+            System.Windows.Forms.Application.DoEvents();
+
+            var dropPanel = Assert.IsType<Panel>(Assert.Single(form.Controls.Find("dropPanel", true)));
+            var draftList = Assert.IsType<ListView>(Assert.Single(form.Controls.Find("draftListView", true)));
+            Assert.NotNull(draftList.BackgroundImage);
+
+            form.ApplyBackground(new BackgroundViewModel(null, 35, 100, 0, 0));
+
+            Assert.Equal(Color.FromArgb(245, 248, 252), dropPanel.BackColor);
+            Assert.Equal(255, dropPanel.BackColor.A);
+            Assert.Equal(Color.FromArgb(250, 250, 250), draftList.BackColor);
+            Assert.Null(draftList.BackgroundImage);
+            Assert.Equal("sample.png", Assert.Single(draftList.Items.Cast<ListViewItem>()).Text);
+        });
+    }
+
+    [Fact]
+    public void Resize_RebuildsDraftBackgroundForCurrentClientSize()
+    {
+        RunInSta(() =>
+        {
+            using var form = new Form1();
+            form.Show();
+            form.ApplyBackground(new BackgroundViewModel(CreateTransparentPng(), 80, 100, 0, 0));
+            System.Windows.Forms.Application.DoEvents();
+            var draftList = Assert.IsType<ListView>(Assert.Single(form.Controls.Find("draftListView", true)));
+            var firstBackground = Assert.IsType<Bitmap>(draftList.BackgroundImage);
+
+            form.ClientSize = new Size(form.ClientSize.Width + 120, form.ClientSize.Height + 80);
+            System.Windows.Forms.Application.DoEvents();
+
+            var resizedBackground = Assert.IsType<Bitmap>(draftList.BackgroundImage);
+            Assert.NotSame(firstBackground, resizedBackground);
+            Assert.Equal(draftList.ClientSize, resizedBackground.Size);
         });
     }
 

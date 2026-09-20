@@ -17,6 +17,11 @@ namespace TransferImageQR
             {
                 _backgroundImage?.Dispose();
                 _backgroundImage = null;
+                draftListView?.BackgroundImage?.Dispose();
+                if (draftListView is not null)
+                {
+                    draftListView.BackgroundImage = null;
+                }
                 qrPictureBox?.Image?.Dispose();
                 components?.Dispose();
             }

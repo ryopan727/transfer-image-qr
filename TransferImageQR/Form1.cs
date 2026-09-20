@@ -5,6 +5,11 @@ namespace TransferImageQR
 {
     public partial class Form1 : Form, IMainView
     {
+        private static readonly Color DefaultDropSurfaceColor = Color.FromArgb(245, 248, 252);
+        private static readonly Color DefaultDraftSurfaceColor = Color.FromArgb(250, 250, 250);
+        private static readonly Color TranslucentDropSurfaceColor = Color.FromArgb(176, 245, 248, 252);
+        private static readonly Color DraftSurfaceVeilColor = Color.FromArgb(168, 250, 250, 250);
+
         private MainPresenter? _presenter;
         private bool _draftActionsEnabled;
         private bool _draftEditingEnabled = true;
@@ -41,6 +46,7 @@ namespace TransferImageQR
             InitializeTrayControls();
             InitializeAutoStartControls();
             SetStyle(ControlStyles.OptimizedDoubleBuffer | ControlStyles.AllPaintingInWmPaint, true);
+            SizeChanged += Form1_SizeChanged;
         }
 
         public void AttachPresenter(MainPresenter presenter)
@@ -283,7 +289,8 @@ namespace TransferImageQR
                 _isApplyingBackground = false;
             }
 
-            Invalidate();
+            UpdateDraftSurfaceAppearance();
+            Invalidate(true);
         }
 
         public void DisplayBackgroundError(string? message)
@@ -362,6 +369,11 @@ namespace TransferImageQR
         protected override void OnPaintBackground(PaintEventArgs e)
         {
             base.OnPaintBackground(e);
+            DrawCustomBackground(e.Graphics);
+        }
+
+        private void DrawCustomBackground(Graphics graphics)
+        {
             if (_backgroundImage is null || _backgroundOpacityPercent == 0)
             {
                 return;
@@ -376,7 +388,7 @@ namespace TransferImageQR
             using var attributes = new ImageAttributes();
             var matrix = new ColorMatrix { Matrix33 = _backgroundOpacityPercent / 100f };
             attributes.SetColorMatrix(matrix, ColorMatrixFlag.Default, ColorAdjustType.Bitmap);
-            e.Graphics.DrawImage(
+            graphics.DrawImage(
                 _backgroundImage,
                 destination,
                 0,
@@ -385,6 +397,60 @@ namespace TransferImageQR
                 _backgroundImage.Height,
                 GraphicsUnit.Pixel,
                 attributes);
+        }
+
+        private void Form1_SizeChanged(object? sender, EventArgs e) =>
+            UpdateDraftSurfaceAppearance();
+
+        private void UpdateDraftSurfaceAppearance()
+        {
+            if (draftListView.IsDisposed || dropPanel.IsDisposed)
+            {
+                return;
+            }
+
+            var hasVisibleBackground = _backgroundImage is not null && _backgroundOpacityPercent > 0;
+            dropPanel.BackColor = hasVisibleBackground
+                ? TranslucentDropSurfaceColor
+                : DefaultDropSurfaceColor;
+
+            var previousBackground = draftListView.BackgroundImage;
+            draftListView.BackgroundImage = hasVisibleBackground
+                ? CreateDraftListBackground()
+                : null;
+            draftListView.BackColor = DefaultDraftSurfaceColor;
+            emptyDraftLabel.BackColor = hasVisibleBackground
+                ? Color.FromArgb(208, DefaultDraftSurfaceColor)
+                : DefaultDraftSurfaceColor;
+            previousBackground?.Dispose();
+
+            dropPanel.Invalidate(true);
+            draftListView.Invalidate();
+            emptyDraftLabel.Invalidate();
+        }
+
+        private Bitmap? CreateDraftListBackground()
+        {
+            if (_backgroundImage is null ||
+                draftListView.ClientSize.Width <= 0 ||
+                draftListView.ClientSize.Height <= 0)
+            {
+                return null;
+            }
+
+            var background = new Bitmap(
+                draftListView.ClientSize.Width,
+                draftListView.ClientSize.Height);
+            using var graphics = Graphics.FromImage(background);
+            graphics.Clear(BackColor);
+            var state = graphics.Save();
+            graphics.TranslateTransform(-draftListView.Left, -draftListView.Top);
+            DrawCustomBackground(graphics);
+            graphics.Restore(state);
+
+            using var veil = new SolidBrush(DraftSurfaceVeilColor);
+            graphics.FillRectangle(veil, new Rectangle(Point.Empty, background.Size));
+            return background;
         }
 
         private void DropPanel_DragEnter(object? sender, DragEventArgs e)
