@@ -97,35 +97,6 @@ Session作成から5分が経過すると、一覧と画像URLは`410 Gone`に�
 | Tests | xUnit.net v3 | Unit、Presentation、Integration、Acceptance tests |
 | Task runner | Taskfile | Restore、Build、Testの品質Gate |
 
-## Architecture
-
-依存方向を内側へ限定した4層構成です。Domainは他のProduct projectへ依存しません。
-
-```mermaid
-flowchart TD
-    Desktop[TransferImageQR<br/>Windows Forms / Composition Root]
-    Application[TransferImageQR.Application<br/>Use cases / Ports]
-    Domain[TransferImageQR.Domain<br/>Entities / Business rules]
-    Infrastructure[TransferImageQR.Infrastructure<br/>HTTP / Files / Images / OS]
-
-    Desktop --> Application
-    Desktop --> Infrastructure
-    Infrastructure --> Application
-    Infrastructure --> Domain
-    Application --> Domain
-```
-
-| Project | Responsibility |
-| --- | --- |
-| `TransferImageQR` | Windows Forms presentationとComposition Root |
-| `TransferImageQR.Application` | Use case、外部Port、転送の調停 |
-| `TransferImageQR.Domain` | Draft、Session、Business rule |
-| `TransferImageQR.Infrastructure` | File、Image、Kestrel、QR、Network、Registry adapter |
-| `tests/TransferImageQR.UnitTests` | 高速なUnit・Architecture・Presentation tests |
-| `tests/TransferImageQR.IntegrationTests` | 実KestrelとFile配信のIntegration tests |
-| `tests/TransferImageQR.AcceptanceTests` | 実File、Skia、QR、Kestrel、HTTPを横断するAcceptance tests |
-| `specs` | Issueごとの差分仕様、Canonical BDD、検証Evidence |
-
 ## Build and test
 
 Task CLIを使用する場合:
