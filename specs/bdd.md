@@ -154,7 +154,9 @@ Scenario: BDD-BACKGROUND-001 透過画像を背景へ設定する
   Given Main Windowが既定背景で表示されている
   When 利用者がAlphaを持つローカルPNGを背景として選択する
   Then PNGの透明部分を維持してMain Window背景に表示される
-  And D&D領域、QR領域、主要文字は読み取れる
+  And D&D領域とDraft画像一覧を通して背景が見える
+  And D&D案内、Thumbnail、File名、選択状態は読み取れる
+  And QR領域と主要文字は読み取れる
 
 Scenario: BDD-BACKGROUND-002 背景の見え方を調整する
   Given カスタム背景が表示されている
@@ -179,6 +181,12 @@ Scenario: BDD-BACKGROUND-005 読み込めない保存画像から復旧する
   Then Main Windowは既定背景で表示される
   And 背景を読み込めなかったことが表示される
   And Draftと転送の操作は継続できる
+
+Scenario: BDD-BACKGROUND-006 背景Clearで前景面を既定表示へ戻す
+  Given カスタム背景がD&D領域とDraft画像一覧の背後に表示されている
+  When 利用者が背景をクリアする
+  Then D&D領域とDraft画像一覧は既定の不透明表示へ戻る
+  And Draft画像と操作状態は維持される
 ```
 
 ## Feature: Draft画像入力
@@ -435,11 +443,12 @@ Scenario: BDD-E2E-002 期限切れ後に新しい転送を開始する
 | BDD-DIAGNOSTICS-001 | Unit / Presentation / Acceptance | 正常時の診断欄非表示、Active転送URL tests | 2026-09-20 |
 | BDD-DIAGNOSTICS-002 | Unit / Presentation / Integration | 起動失敗status、Port競合、継続可能なView state | 2026-09-20 |
 | BDD-DIAGNOSTICS-003 | Integration | File削除後の404 HTMLと情報非露出 | 2026-09-20 |
-| BDD-BACKGROUND-001 | Unit / Presentation | Alpha付きPNG decode／pixel描画、Form前景面 tests | 2026-09-20 |
+| BDD-BACKGROUND-001 | Unit / Presentation | Alpha付きPNG decode／pixel描画、D&D半透明面、Draft一覧合成背景 tests | 2026-09-20 |
 | BDD-BACKGROUND-002 | Unit / Presentation | 値正規化、設定保存、描画矩形、Form control tests | 2026-09-20 |
 | BDD-BACKGROUND-003 | Integration / Presentation | JSON round-trip、Presenter初期復元 tests | 2026-09-20 |
 | BDD-BACKGROUND-004 | Unit / Presentation | Clearと既定値保存、Image解放 tests | 2026-09-20 |
 | BDD-BACKGROUND-005 | Unit / Presentation | 読取失敗FallbackとError表示 tests | 2026-09-20 |
+| BDD-BACKGROUND-006 | Presentation | 背景Clear時の既定面復帰とDraft状態維持 tests | 2026-09-20 |
 | BDD-DRAFT-001 | Unit / Presentation | AddImages use case、Presenter、Form integration tests | 2026-09-20 |
 | BDD-DRAFT-002 | Unit / Presentation | 追記順序と再描画のtests | 2026-09-20 |
 | BDD-DRAFT-003 | Unit / Presentation / Acceptance | 混在入力、非対応形式、拒否理由表示のtests | 2026-09-20 |
@@ -505,4 +514,5 @@ Scenario: BDD-E2E-002 期限切れ後に新しい転送を開始する
 | `specs/issue-0014-windows-auto-start.md` | BDD-AUTOSTART-001〜004 | Current UserのWindows Login自動起動登録・解除・復元・Error表示 |
 | `specs/issue-0015-transfer-diagnostics.md` | BDD-DIAGNOSTICS-001〜003 | Server起動失敗、配信Endpoint、接続確認事項、消失元画像の診断 |
 | `specs/issue-0016-mvp-acceptance.md` | 既存MVP Scenario全般、BDD-E2E-001〜002 | Production adapterを横断する自動受入試験と実機手動手順 |
+| `specs/issue-0036-transparent-draft-surfaces.md` | BDD-BACKGROUND-001、BDD-BACKGROUND-006 | D&D領域とDraft一覧の背景透過、可読性、Clear時の復帰 |
 | `specs/change-20260920-contextual-network-diagnostics.md` | BDD-DIAGNOSTICS-001 | 正常時の重複診断文言を削除し、Error時だけ表示 |
