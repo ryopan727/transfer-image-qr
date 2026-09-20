@@ -52,9 +52,9 @@ Kestrelはアプリ起動時に全ネットワークインターフェースの�
 ### 主要転送フロー
 
 1. `dotnet run --project TransferImageQR/TransferImageQR.csproj`で起動する。
-2. Main Windowの診断欄に`http://<選択IP>:<Port>`、同一LAN、Windows Firewallの確認案内が表示されることを確認する。
+2. 正常時はMain Window上部に配信先や接続確認の診断文言が表示されないことを確認する。
 3. JPEG、PNG、WebPをD&Dし、3枚が順番どおりDraftへ表示されることを確認する。
-4. 「QR作成」を選び、状態がActiveになり、Draftの追加・削除・全Clearができなくなることを確認する。
+4. 「QR作成」を選び、状態がActiveになり、転送URL欄で`http://<選択IP>:<Port>`を確認でき、Draftの追加・削除・全Clearができなくなることを確認する。
 5. iPhone標準CameraでQRを読み、Safariに3枚の一覧が表示されることを確認する。
 6. 各画像を開き、元のJPEG、PNG、WebPが表示され、iOS標準操作で写真へ保存できることを確認する。
 7. Session作成から5分後に同じ一覧URLと画像URLを再読込し、期限切れ案内が表示されることを確認する。
@@ -63,7 +63,7 @@ Kestrelはアプリ起動時に全ネットワークインターフェースの�
 ### Error・設定フロー
 
 1. Active化後に元画像を移動または削除し、該当URLが404の「元画像が見つかりません」Pageになることを確認する。
-2. iPhoneを別LANへ切り替えた場合は接続できず、PC診断欄の同一LAN・Windows Firewall案内から復旧確認できることを確認する。
+2. iPhoneを別LANへ切り替えた場合は接続できないことを確認し、同一LANへ戻して復旧することを確認する。HTTP Server起動失敗時だけPC側へ診断Errorが表示されることを確認する。
 3. 背景画像を選択・調整して再起動し、表示設定が復元されることを確認する。
 4. 「閉じたときトレイに格納」をONにしてWindowを閉じ、Trayから再表示・終了できることを確認する。
 5. 「Windowsログイン時に起動」をONにしてWindowsへ再Loginし、TransferImageQRが起動することを確認する。確認後にOFFへ戻し、次回Loginでは起動しないことを確認する。

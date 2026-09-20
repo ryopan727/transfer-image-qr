@@ -123,11 +123,12 @@ Scenario: BDD-AUTOSTART-004 Registry Access失敗を案内する
 ### Rule: 利用者が安全な情報から代表的な転送失敗を切り分けられる
 
 ```gherkin
-Scenario: BDD-DIAGNOSTICS-001 利用中Endpointと接続確認事項を表示する
+Scenario: BDD-DIAGNOSTICS-001 正常時は診断文言を常時表示しない
   Given HTTP Serverが稼働しLAN IPv4 Addressが選択されている
-  When Main Windowを表示するかLAN IPv4 Addressを変更する
-  Then 選択中IP Addressと実際の配信Portが表示される
-  And 接続できない場合は同一LANとWindows Firewallを確認するよう表示される
+  When Main Windowを表示する
+  Then 画面上部に配信先や接続確認の診断文言は表示されない
+  When 利用者が転送Sessionを作成する
+  Then Active転送URL欄で選択中IP Addressと実際の配信Portを確認できる
 
 Scenario: BDD-DIAGNOSTICS-002 HTTP Server起動失敗を案内する
   Given KestrelがPort競合等で起動できない
@@ -431,7 +432,7 @@ Scenario: BDD-E2E-002 期限切れ後に新しい転送を開始する
 | BDD-AUTOSTART-002 | Unit / Integration / Presentation | Disable、固有value削除 tests | 2026-09-20 |
 | BDD-AUTOSTART-003 | Unit / Integration / Presentation | IsEnabled、起動時反映 tests | 2026-09-20 |
 | BDD-AUTOSTART-004 | Unit / Presentation | Port failure、friendly error tests | 2026-09-20 |
-| BDD-DIAGNOSTICS-001 | Unit / Presentation | Endpoint更新、同一LAN・Firewall案内 tests | 2026-09-20 |
+| BDD-DIAGNOSTICS-001 | Unit / Presentation / Acceptance | 正常時の診断欄非表示、Active転送URL tests | 2026-09-20 |
 | BDD-DIAGNOSTICS-002 | Unit / Presentation / Integration | 起動失敗status、Port競合、継続可能なView state | 2026-09-20 |
 | BDD-DIAGNOSTICS-003 | Integration | File削除後の404 HTMLと情報非露出 | 2026-09-20 |
 | BDD-BACKGROUND-001 | Unit / Presentation | Alpha付きPNG decode／pixel描画、Form前景面 tests | 2026-09-20 |
@@ -504,3 +505,4 @@ Scenario: BDD-E2E-002 期限切れ後に新しい転送を開始する
 | `specs/issue-0014-windows-auto-start.md` | BDD-AUTOSTART-001〜004 | Current UserのWindows Login自動起動登録・解除・復元・Error表示 |
 | `specs/issue-0015-transfer-diagnostics.md` | BDD-DIAGNOSTICS-001〜003 | Server起動失敗、配信Endpoint、接続確認事項、消失元画像の診断 |
 | `specs/issue-0016-mvp-acceptance.md` | 既存MVP Scenario全般、BDD-E2E-001〜002 | Production adapterを横断する自動受入試験と実機手動手順 |
+| `specs/change-20260920-contextual-network-diagnostics.md` | BDD-DIAGNOSTICS-001 | 正常時の重複診断文言を削除し、Error時だけ表示 |
