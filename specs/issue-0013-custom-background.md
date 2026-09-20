@@ -183,10 +183,10 @@ Scenario: BDD-BACKGROUND-005 読み込めない保存画像から復旧する
 
 | Command / Check | Result | Notes |
 | --- | --- | --- |
-| `task verify` | Passed | Restore、Build、Unit 80 passed / 0 failed / 0 skipped |
+| `task verify` | Passed | Restore、Build、Unit 86 passed / 0 failed / 0 skipped |
 | `task test:integration` | Passed | 10 passed / 0 failed / 0 skipped |
 | `dotnet build TransferImageQR.sln --no-restore` | Passed | 0 warnings / 0 errors |
-| `dotnet test tests/TransferImageQR.UnitTests/TransferImageQR.UnitTests.csproj --no-build` | Passed | 80 passed / 0 failed / 0 skipped |
+| `dotnet test tests/TransferImageQR.UnitTests/TransferImageQR.UnitTests.csproj --no-build` | Passed | 86 passed / 0 failed / 0 skipped |
 | `dotnet test tests/TransferImageQR.IntegrationTests/TransferImageQR.IntegrationTests.csproj --no-build` | Passed | 10 passed / 0 failed / 0 skipped |
 | Process runtime smoke | Passed | Main Window processが起動後2秒間継続し、終了時に停止 |
 | WinForms自動描画確認 | Passed | Alpha合成Pixel、不透明なD&D/QR前景、Accessible NameをPresentation Testで確認 |
