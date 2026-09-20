@@ -5,6 +5,7 @@ using TransferImageQR.Application.Sessions;
 using TransferImageQR.Domain.Sessions;
 using TransferImageQR.Application.Transfers;
 using TransferImageQR.Application.Tray;
+using TransferImageQR.Application.AutoStart;
 
 namespace TransferImageQR.Presentation;
 
@@ -16,7 +17,8 @@ public sealed class MainPresenter(
     ITransferQrCodeService transferQrCodeService,
     ILanAddressProvider? lanAddressProvider = null,
     IBackgroundCustomizationUseCase? backgroundCustomizationUseCase = null,
-    ITraySettingsUseCase? traySettingsUseCase = null)
+    ITraySettingsUseCase? traySettingsUseCase = null,
+    IAutoStartSettingsUseCase? autoStartSettingsUseCase = null)
 {
     private bool _isAdding;
     private bool _isEditingEnabled = true;
@@ -25,6 +27,22 @@ public sealed class MainPresenter(
     private IReadOnlyList<LanAddressOption> _lanAddressOptions = [];
     private IPAddress? _selectedLanAddress;
     private bool _minimizeToTray;
+
+    public void LoadAutoStartSettings()
+    {
+        if (autoStartSettingsUseCase is not null)
+        {
+            ApplyAutoStartSettingsResult(autoStartSettingsUseCase.Load());
+        }
+    }
+
+    public void SetAutoStartEnabled(bool enabled)
+    {
+        if (autoStartSettingsUseCase is not null)
+        {
+            ApplyAutoStartSettingsResult(autoStartSettingsUseCase.SetEnabled(enabled));
+        }
+    }
 
     public void LoadTraySettings()
     {
@@ -308,6 +326,14 @@ public sealed class MainPresenter(
         view.DisplayTraySettingsError(result.Error == TraySettingsError.None
             ? null
             : "常駐設定を保存できません。");
+    }
+
+    private void ApplyAutoStartSettingsResult(AutoStartSettingsResult result)
+    {
+        view.SetAutoStartMode(result.Enabled);
+        view.DisplayAutoStartError(result.Error == AutoStartSettingsError.None
+            ? null
+            : "自動起動設定を変更できません。");
     }
 
     private static string ToUserMessage(DraftImageRejectionReason reason) =>

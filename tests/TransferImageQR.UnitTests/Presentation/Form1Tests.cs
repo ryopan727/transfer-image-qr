@@ -8,6 +8,7 @@ using TransferImageQR.Application.Drafts;
 using TransferImageQR.Application.Sessions;
 using TransferImageQR.Application.Transfers;
 using TransferImageQR.Application.Tray;
+using TransferImageQR.Application.AutoStart;
 using TransferImageQR.Domain.Drafts;
 using TransferImageQR.Domain.Sessions;
 using TransferImageQR.Presentation;
@@ -17,6 +18,34 @@ namespace TransferImageQR.UnitTests.Presentation;
 
 public sealed class Form1Tests
 {
+    [Fact]
+    public void AutoStartControl_LoadsAndDelegatesChanges()
+    {
+        RunInSta(() =>
+        {
+            var autoStart = new StubAutoStartSettingsUseCase(true);
+            using var form = new Form1();
+            var presenter = new MainPresenter(
+                form,
+                new StubAddImagesToDraftUseCase(new AddImagesToDraftResult([], 0, [])),
+                new StubEditDraftUseCase(),
+                new StubTransferSessionUseCase(),
+                new StubTransferQrCodeService(),
+                autoStartSettingsUseCase: autoStart);
+            form.AttachPresenter(presenter);
+
+            presenter.LoadAutoStartSettings();
+            var checkBox = Assert.IsType<CheckBox>(
+                Assert.Single(form.Controls.Find("autoStartCheckBox", true)));
+            Assert.True(checkBox.Checked);
+            Assert.Equal("Windowsログイン時に起動", checkBox.AccessibleName);
+
+            checkBox.Checked = false;
+
+            Assert.False(autoStart.SavedValue);
+        });
+    }
+
     [Fact]
     public void TrayMode_CloseHidesWindowAndMenuCanShowAndExit()
     {
@@ -572,6 +601,19 @@ public sealed class Form1Tests
         {
             SavedValue = enabled;
             return new TraySettingsResult(new TraySettings(enabled));
+        }
+    }
+
+    private sealed class StubAutoStartSettingsUseCase(bool initialValue) : IAutoStartSettingsUseCase
+    {
+        public bool? SavedValue { get; private set; }
+
+        public AutoStartSettingsResult Load() => new(initialValue);
+
+        public AutoStartSettingsResult SetEnabled(bool enabled)
+        {
+            SavedValue = enabled;
+            return new AutoStartSettingsResult(enabled);
         }
     }
 }

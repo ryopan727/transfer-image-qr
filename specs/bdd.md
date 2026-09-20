@@ -19,7 +19,8 @@
 - iPhone Safari向け表示、Token検証、期限切れ拒否
 - Main Windowのカスタム背景画像、表示調整、設定永続化
 - Windowsシステムトレイ常駐とMain Window再表示・明示終了
-- MVP-001〜MVP-013で実装済みの振る舞い
+- Windows Login時のCurrent User自動起動設定
+- MVP-001〜MVP-014で実装済みの振る舞い
 
 システムトレイ、自動起動など、未実装Issueの振る舞いは本書の対象外とする。
 
@@ -83,6 +84,37 @@ Scenario: BDD-TRAY-005 再起動後に常駐設定を復元する
   When TransferImageQRを終了して再起動する
   Then 常駐設定がONで表示される
   And Close時にTrayへ格納される
+```
+
+## Feature: Windows Login時の自動起動
+
+### Rule: Current UserのRun登録をMain Windowから管理できる
+
+```gherkin
+Scenario: BDD-AUTOSTART-001 Windows Login時の起動をONにする
+  Given 自動起動がOFFである
+  When 利用者が「Windowsログイン時に起動」をONにする
+  Then Current UserのRunへ引用済みExecutable Pathが登録される
+  And 次回Windows Login後にTransferImageQRを起動できる
+
+Scenario: BDD-AUTOSTART-002 Windows Login時の起動をOFFにする
+  Given TransferImageQRの自動起動がONである
+  When 利用者が「Windowsログイン時に起動」をOFFにする
+  Then TransferImageQRのRun valueが削除される
+  And 他ApplicationのRun valueは変更されない
+
+Scenario: BDD-AUTOSTART-003 自動起動状態を復元する
+  Given Current UserのRunへ現在Executableが登録されている
+  When TransferImageQRを起動する
+  Then 自動起動CheckBoxがONで表示される
+  When 登録Commandが現在Executableと異なる
+  Then 自動起動CheckBoxはOFFで表示される
+
+Scenario: BDD-AUTOSTART-004 Registry Access失敗を案内する
+  Given Current UserのRunへAccessできない
+  When 自動起動状態を読み込むか変更する
+  Then 技術例外を表示せず自動起動設定を変更できない旨を表示する
+  And Draftと転送の操作は継続できる
 ```
 
 ## Feature: Main Window背景のカスタマイズ
@@ -368,6 +400,10 @@ Scenario: BDD-E2E-002 期限切れ後に新しい転送を開始する
 | BDD-TRAY-003 | Unit / Presentation / Runtime smoke | 明示Exit bypassとProcess終了 tests | 2026-09-20 |
 | BDD-TRAY-004 | Presentation | OFF時のClose完了 test | 2026-09-20 |
 | BDD-TRAY-005 | Unit / Integration / Presentation | JSON round-trip、Presenter初期復元 tests | 2026-09-20 |
+| BDD-AUTOSTART-001 | Unit / Integration / Presentation | Enable、引用Command、CheckBox wiring tests | 2026-09-20 |
+| BDD-AUTOSTART-002 | Unit / Integration / Presentation | Disable、固有value削除 tests | 2026-09-20 |
+| BDD-AUTOSTART-003 | Unit / Integration / Presentation | IsEnabled、起動時反映 tests | 2026-09-20 |
+| BDD-AUTOSTART-004 | Unit / Presentation | Port failure、friendly error tests | 2026-09-20 |
 | BDD-BACKGROUND-001 | Unit / Presentation | Alpha付きPNG decode／pixel描画、Form前景面 tests | 2026-09-20 |
 | BDD-BACKGROUND-002 | Unit / Presentation | 値正規化、設定保存、描画矩形、Form control tests | 2026-09-20 |
 | BDD-BACKGROUND-003 | Integration / Presentation | JSON round-trip、Presenter初期復元 tests | 2026-09-20 |
@@ -435,3 +471,4 @@ Scenario: BDD-E2E-002 期限切れ後に新しい転送を開始する
 | `specs/issue-0011-lan-interface-selection.md` | BDD-NETWORK-001〜003, BDD-TRANSFER-001〜002 | LAN IPv4候補の表示・選択・保持とQR反映 |
 | `specs/issue-0012-system-tray.md` | BDD-TRAY-001〜005 | Tray常駐設定、Close時格納、再表示、明示終了、永続化 |
 | `specs/issue-0013-custom-background.md` | BDD-BACKGROUND-001〜005 | Main Window背景画像、表示調整、永続化、Clear、復旧 |
+| `specs/issue-0014-windows-auto-start.md` | BDD-AUTOSTART-001〜004 | Current UserのWindows Login自動起動登録・解除・復元・Error表示 |

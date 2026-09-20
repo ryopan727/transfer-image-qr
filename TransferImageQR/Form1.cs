@@ -27,8 +27,11 @@ namespace TransferImageQR
         private readonly Label backgroundErrorLabel = new();
         private readonly CheckBox minimizeToTrayCheckBox = new();
         private readonly Label traySettingsErrorLabel = new();
+        private readonly CheckBox autoStartCheckBox = new();
+        private readonly Label autoStartErrorLabel = new();
         private NotifyIcon? _trayIcon;
         private bool _isApplyingTrayMode;
+        private bool _isApplyingAutoStartMode;
         private bool _allowExit;
 
         public Form1()
@@ -36,6 +39,7 @@ namespace TransferImageQR
             InitializeComponent();
             InitializeBackgroundControls();
             InitializeTrayControls();
+            InitializeAutoStartControls();
             SetStyle(ControlStyles.OptimizedDoubleBuffer | ControlStyles.AllPaintingInWmPaint, true);
         }
 
@@ -294,6 +298,25 @@ namespace TransferImageQR
             traySettingsErrorLabel.Visible = !string.IsNullOrEmpty(message);
         }
 
+        public void SetAutoStartMode(bool enabled)
+        {
+            _isApplyingAutoStartMode = true;
+            try
+            {
+                autoStartCheckBox.Checked = enabled;
+            }
+            finally
+            {
+                _isApplyingAutoStartMode = false;
+            }
+        }
+
+        public void DisplayAutoStartError(string? message)
+        {
+            autoStartErrorLabel.Text = message ?? string.Empty;
+            autoStartErrorLabel.Visible = !string.IsNullOrEmpty(message);
+        }
+
         public void HideToTray() => Hide();
 
         public void ShowFromTray()
@@ -499,6 +522,41 @@ namespace TransferImageQR
             if (!_isApplyingTrayMode)
             {
                 _presenter?.SetMinimizeToTray(minimizeToTrayCheckBox.Checked);
+            }
+        }
+
+        private void InitializeAutoStartControls()
+        {
+            autoStartCheckBox.Name = "autoStartCheckBox";
+            autoStartCheckBox.AccessibleName = "Windowsログイン時に起動";
+            autoStartCheckBox.AutoSize = true;
+            autoStartCheckBox.BackColor = Color.FromArgb(245, 248, 252);
+            autoStartCheckBox.Location = new Point(340, 50);
+            autoStartCheckBox.TabIndex = 1;
+            autoStartCheckBox.Text = "Windowsログイン時に起動";
+            autoStartCheckBox.CheckedChanged += AutoStartCheckBox_CheckedChanged;
+
+            autoStartErrorLabel.Name = "autoStartErrorLabel";
+            autoStartErrorLabel.AccessibleName = "自動起動設定エラー";
+            autoStartErrorLabel.AutoEllipsis = true;
+            autoStartErrorLabel.BackColor = Color.FromArgb(245, 248, 252);
+            autoStartErrorLabel.Font = new Font("Segoe UI", 8F, FontStyle.Regular, GraphicsUnit.Point);
+            autoStartErrorLabel.ForeColor = Color.Firebrick;
+            autoStartErrorLabel.Location = new Point(340, 69);
+            autoStartErrorLabel.Size = new Size(166, 15);
+            autoStartErrorLabel.Visible = false;
+
+            Controls.Add(autoStartCheckBox);
+            Controls.Add(autoStartErrorLabel);
+            autoStartCheckBox.BringToFront();
+            autoStartErrorLabel.BringToFront();
+        }
+
+        private void AutoStartCheckBox_CheckedChanged(object? sender, EventArgs e)
+        {
+            if (!_isApplyingAutoStartMode)
+            {
+                _presenter?.SetAutoStartEnabled(autoStartCheckBox.Checked);
             }
         }
 
