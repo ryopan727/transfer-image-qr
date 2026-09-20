@@ -2,6 +2,7 @@ using System.Net;
 using System.Runtime.ExceptionServices;
 using System.Windows.Forms;
 using SkiaSharp;
+using TransferImageQR.Application.Backgrounds;
 using TransferImageQR.Application.Drafts;
 using TransferImageQR.Application.Sessions;
 using TransferImageQR.Application.Transfers;
@@ -14,6 +15,68 @@ namespace TransferImageQR.UnitTests.Presentation;
 
 public sealed class Form1Tests
 {
+    [Fact]
+    public void BackgroundControls_ExposeAccessibleAdjustmentAndClearActions()
+    {
+        RunInSta(() =>
+        {
+            var background = new StubBackgroundCustomizationUseCase();
+            using var form = new Form1();
+            var presenter = new MainPresenter(
+                form,
+                new StubAddImagesToDraftUseCase(new AddImagesToDraftResult([], 0, [])),
+                new StubEditDraftUseCase(),
+                new StubTransferSessionUseCase(),
+                new StubTransferQrCodeService(),
+                backgroundCustomizationUseCase: background);
+            form.AttachPresenter(presenter);
+            form.ApplyBackground(new BackgroundViewModel(CreateTransparentPng(), 40, 125, 5, -10));
+            form.Show();
+            System.Windows.Forms.Application.DoEvents();
+
+            var group = Assert.IsType<GroupBox>(Assert.Single(form.Controls.Find("backgroundSettingsGroup", true)));
+            var opacity = Assert.IsType<NumericUpDown>(Assert.Single(form.Controls.Find("backgroundOpacityInput", true)));
+            var zoom = Assert.IsType<NumericUpDown>(Assert.Single(form.Controls.Find("backgroundZoomInput", true)));
+            var offsetX = Assert.IsType<NumericUpDown>(Assert.Single(form.Controls.Find("backgroundOffsetXInput", true)));
+            var clear = Assert.IsType<Button>(Assert.Single(form.Controls.Find("clearBackgroundButton", true)));
+
+            Assert.Equal("背景設定", group.AccessibleName);
+            Assert.Equal(40, opacity.Value);
+            Assert.Equal(125, zoom.Value);
+            Assert.Equal(5, offsetX.Value);
+            Assert.True(clear.Enabled);
+            clear.PerformClick();
+            opacity.Value = 65;
+
+            Assert.Equal(65, background.Appearance?.Opacity);
+            Assert.True(background.Cleared);
+        });
+    }
+
+    [Fact]
+    public void BackgroundRendering_PreservesSourceAlphaAndKeepsForegroundPanelsOpaque()
+    {
+        RunInSta(() =>
+        {
+            using var form = new Form1();
+            form.ApplyBackground(new BackgroundViewModel(CreateTransparentPng(), 100, 300, 0, 0));
+            form.Show();
+            System.Windows.Forms.Application.DoEvents();
+            using var rendered = new Bitmap(form.ClientSize.Width, form.ClientSize.Height);
+
+            form.DrawToBitmap(rendered, form.ClientRectangle);
+
+            var backgroundPixel = rendered.GetPixel(10, 300);
+            Assert.InRange(backgroundPixel.R, 245, 255);
+            Assert.InRange(backgroundPixel.G, 115, 140);
+            Assert.InRange(backgroundPixel.B, 115, 140);
+            var dropPanel = Assert.IsType<Panel>(Assert.Single(form.Controls.Find("dropPanel", true)));
+            Assert.Equal(Color.FromArgb(245, 248, 252), dropPanel.BackColor);
+            var qrPanel = Assert.IsType<Panel>(Assert.Single(form.Controls.Find("qrPanel", true)));
+            Assert.Equal(Color.White, qrPanel.BackColor);
+        });
+    }
+
     [Fact]
     public void MainForm_ExposesEnabledFileDropAreaAndEmptyDraftState()
     {
@@ -300,6 +363,15 @@ public sealed class Form1Tests
         return data.ToArray();
     }
 
+    private static byte[] CreateTransparentPng()
+    {
+        using var bitmap = new SKBitmap(2, 2, SKColorType.Rgba8888, SKAlphaType.Premul);
+        bitmap.Erase(new SKColor(255, 0, 0, 128));
+        using var image = SKImage.FromBitmap(bitmap);
+        using var data = image.Encode(SKEncodedImageFormat.Png, quality: 100);
+        return data.ToArray();
+    }
+
     private static void RunInSta(Action action)
     {
         Exception? capturedException = null;
@@ -379,5 +451,36 @@ public sealed class Form1Tests
         : ILanAddressProvider
     {
         public IReadOnlyList<LanAddressOption> GetIPv4Addresses() => options;
+    }
+
+    private sealed class StubBackgroundCustomizationUseCase : IBackgroundCustomizationUseCase
+    {
+        public (int Opacity, int Zoom, int X, int Y)? Appearance { get; private set; }
+        public bool Cleared { get; private set; }
+
+        public BackgroundCustomizationResult Load() => Current();
+
+        public BackgroundCustomizationResult SelectImage(string filePath) => Current();
+
+        public BackgroundCustomizationResult UpdateAppearance(
+            int opacityPercent,
+            int zoomPercent,
+            int offsetX,
+            int offsetY)
+        {
+            Appearance = (opacityPercent, zoomPercent, offsetX, offsetY);
+            return new BackgroundCustomizationResult(
+                new BackgroundSettings(null, opacityPercent, zoomPercent, offsetX, offsetY),
+                null);
+        }
+
+        public BackgroundCustomizationResult Clear()
+        {
+            Cleared = true;
+            return Current();
+        }
+
+        private static BackgroundCustomizationResult Current() =>
+            new(BackgroundSettings.Default, null);
     }
 }

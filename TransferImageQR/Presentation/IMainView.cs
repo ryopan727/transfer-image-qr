@@ -27,4 +27,8 @@ public interface IMainView
     void DisplayTransferSession(TransferSessionViewModel session);
 
     void DisplayDraftState();
+
+    void ApplyBackground(BackgroundViewModel background);
+
+    void DisplayBackgroundError(string? message);
 }

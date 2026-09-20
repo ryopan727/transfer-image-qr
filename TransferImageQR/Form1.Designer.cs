@@ -15,6 +15,8 @@ namespace TransferImageQR
         {
             if (disposing)
             {
+                _backgroundImage?.Dispose();
+                _backgroundImage = null;
                 qrPictureBox?.Image?.Dispose();
                 components?.Dispose();
             }
@@ -123,7 +125,7 @@ namespace TransferImageQR
             dropPanel.BorderStyle = BorderStyle.FixedSingle;
             dropPanel.Controls.Add(supportedFormatsLabel);
             dropPanel.Controls.Add(dropInstructionLabel);
-            dropPanel.Location = new Point(36, 136);
+            dropPanel.Location = new Point(36, 212);
             dropPanel.Name = "dropPanel";
             dropPanel.Size = new Size(828, 112);
             dropPanel.TabIndex = 3;
@@ -156,7 +158,7 @@ namespace TransferImageQR
             //
             draftCountLabel.AutoSize = true;
             draftCountLabel.Font = new Font("Segoe UI", 12F, FontStyle.Bold, GraphicsUnit.Point);
-            draftCountLabel.Location = new Point(36, 276);
+            draftCountLabel.Location = new Point(36, 352);
             draftCountLabel.Name = "draftCountLabel";
             draftCountLabel.Size = new Size(77, 21);
             draftCountLabel.TabIndex = 4;
@@ -166,7 +168,7 @@ namespace TransferImageQR
             //
             removeDraftImageButton.AccessibleName = "選択画像を削除";
             removeDraftImageButton.Enabled = false;
-            removeDraftImageButton.Location = new Point(483, 270);
+            removeDraftImageButton.Location = new Point(483, 346);
             removeDraftImageButton.Name = "removeDraftImageButton";
             removeDraftImageButton.Size = new Size(120, 32);
             removeDraftImageButton.TabIndex = 5;
@@ -178,7 +180,7 @@ namespace TransferImageQR
             //
             clearDraftButton.AccessibleName = "Draftを全クリア";
             clearDraftButton.Enabled = false;
-            clearDraftButton.Location = new Point(609, 270);
+            clearDraftButton.Location = new Point(609, 346);
             clearDraftButton.Name = "clearDraftButton";
             clearDraftButton.Size = new Size(120, 32);
             clearDraftButton.TabIndex = 6;
@@ -190,7 +192,7 @@ namespace TransferImageQR
             //
             createQrButton.AccessibleName = "QR作成";
             createQrButton.Enabled = false;
-            createQrButton.Location = new Point(735, 270);
+            createQrButton.Location = new Point(735, 346);
             createQrButton.Name = "createQrButton";
             createQrButton.Size = new Size(129, 32);
             createQrButton.TabIndex = 7;
@@ -202,7 +204,7 @@ namespace TransferImageQR
             //
             newTransferButton.AccessibleName = "新しい転送";
             newTransferButton.Enabled = false;
-            newTransferButton.Location = new Point(735, 270);
+            newTransferButton.Location = new Point(735, 346);
             newTransferButton.Name = "newTransferButton";
             newTransferButton.Size = new Size(129, 32);
             newTransferButton.TabIndex = 8;
@@ -225,7 +227,7 @@ namespace TransferImageQR
             qrPanel.Controls.Add(transferUrlTextBox);
             qrPanel.Controls.Add(qrStatusLabel);
             qrPanel.Controls.Add(qrPictureBox);
-            qrPanel.Location = new Point(36, 310);
+            qrPanel.Location = new Point(36, 386);
             qrPanel.Name = "qrPanel";
             qrPanel.Size = new Size(828, 294);
             qrPanel.TabIndex = 9;
@@ -280,7 +282,7 @@ namespace TransferImageQR
             draftListView.BackColor = Color.FromArgb(250, 250, 250);
             draftListView.BorderStyle = BorderStyle.FixedSingle;
             draftListView.LargeImageList = draftImageList;
-            draftListView.Location = new Point(36, 310);
+            draftListView.Location = new Point(36, 386);
             draftListView.MultiSelect = false;
             draftListView.Name = "draftListView";
             draftListView.ShowItemToolTips = true;
@@ -301,7 +303,7 @@ namespace TransferImageQR
             emptyDraftLabel.AutoSize = true;
             emptyDraftLabel.BackColor = Color.FromArgb(250, 250, 250);
             emptyDraftLabel.ForeColor = SystemColors.GrayText;
-            emptyDraftLabel.Location = new Point(357, 448);
+            emptyDraftLabel.Location = new Point(357, 524);
             emptyDraftLabel.Name = "emptyDraftLabel";
             emptyDraftLabel.Size = new Size(186, 15);
             emptyDraftLabel.TabIndex = 10;
@@ -313,7 +315,7 @@ namespace TransferImageQR
             rejectionTitleLabel.AutoSize = true;
             rejectionTitleLabel.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point);
             rejectionTitleLabel.ForeColor = Color.Firebrick;
-            rejectionTitleLabel.Location = new Point(36, 614);
+            rejectionTitleLabel.Location = new Point(36, 690);
             rejectionTitleLabel.Name = "rejectionTitleLabel";
             rejectionTitleLabel.Size = new Size(103, 15);
             rejectionTitleLabel.TabIndex = 11;
@@ -328,7 +330,7 @@ namespace TransferImageQR
             rejectionListBox.FormattingEnabled = true;
             rejectionListBox.HorizontalScrollbar = true;
             rejectionListBox.ItemHeight = 15;
-            rejectionListBox.Location = new Point(36, 636);
+            rejectionListBox.Location = new Point(36, 712);
             rejectionListBox.Name = "rejectionListBox";
             rejectionListBox.Size = new Size(828, 64);
             rejectionListBox.TabIndex = 12;
@@ -339,7 +341,7 @@ namespace TransferImageQR
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             BackColor = SystemColors.Window;
-            ClientSize = new Size(900, 720);
+            ClientSize = new Size(900, 796);
             Controls.Add(rejectionListBox);
             Controls.Add(rejectionTitleLabel);
             Controls.Add(newTransferButton);
@@ -356,7 +358,7 @@ namespace TransferImageQR
             Controls.Add(lanAddressLabel);
             Controls.Add(sessionStateLabel);
             Controls.Add(headingLabel);
-            MinimumSize = new Size(720, 640);
+            MinimumSize = new Size(916, 835);
             Name = "mainForm";
             StartPosition = FormStartPosition.CenterScreen;
             Text = "TransferImageQR";

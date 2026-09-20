@@ -1,4 +1,5 @@
 using System.Net;
+using TransferImageQR.Application.Backgrounds;
 using TransferImageQR.Application.Drafts;
 using TransferImageQR.Application.Sessions;
 using TransferImageQR.Application.Transfers;
@@ -11,6 +12,30 @@ namespace TransferImageQR.UnitTests.Presentation;
 
 public sealed class MainPresenterTests
 {
+    [Fact]
+    public void BackgroundCommands_ApplyUseCaseResultsAndFriendlyErrors()
+    {
+        var view = new FakeMainView();
+        var background = new StubBackgroundCustomizationUseCase();
+        var sut = CreatePresenter(
+            view,
+            new StubAddImagesToDraftUseCase(),
+            new StubEditDraftUseCase(),
+            new StubTransferSessionUseCase(),
+            backgroundCustomizationUseCase: background);
+
+        sut.LoadBackground();
+        sut.SelectBackgroundImage("oshi.png");
+        sut.UpdateBackgroundAppearance(60, 150, 10, -20);
+        sut.ClearBackground();
+
+        Assert.Equal(4, view.Backgrounds.Count);
+        Assert.Equal("oshi.png", background.SelectedPath);
+        Assert.Equal((60, 150, 10, -20), background.Appearance);
+        Assert.True(background.Cleared);
+        Assert.Contains("読み込めません", view.BackgroundError);
+    }
+
     [Fact]
     public async Task AddDroppedFilesAsync_AppendsItemsAndUpdatesDraftCount()
     {
@@ -354,14 +379,16 @@ public sealed class MainPresenterTests
         IEditDraftUseCase editUseCase,
         ITransferSessionUseCase sessionUseCase,
         ITransferQrCodeService? qrCodeService = null,
-        ILanAddressProvider? lanAddressProvider = null) =>
+        ILanAddressProvider? lanAddressProvider = null,
+        IBackgroundCustomizationUseCase? backgroundCustomizationUseCase = null) =>
         new(
             view,
             addUseCase,
             editUseCase,
             sessionUseCase,
             qrCodeService ?? new StubTransferQrCodeService(),
-            lanAddressProvider ?? new StubLanAddressProvider());
+            lanAddressProvider ?? new StubLanAddressProvider(),
+            backgroundCustomizationUseCase);
 
     private sealed class StubAddImagesToDraftUseCase(params AddImagesToDraftResult[] results)
         : IAddImagesToDraftUseCase
@@ -403,6 +430,8 @@ public sealed class MainPresenterTests
         public IReadOnlyCollection<LanAddressViewModel> LanAddresses { get; private set; } = [];
         public string? SelectedLanAddress { get; private set; }
         public bool LanAddressSelectionEnabled { get; private set; }
+        public List<BackgroundViewModel> Backgrounds { get; } = [];
+        public string? BackgroundError { get; private set; }
 
         public void AppendDraftImages(IReadOnlyCollection<DraftImageViewModel> images) =>
             AppendedImages.AddRange(images);
@@ -433,6 +462,10 @@ public sealed class MainPresenterTests
 
         public void SetLanAddressSelectionEnabled(bool enabled) =>
             LanAddressSelectionEnabled = enabled;
+
+        public void ApplyBackground(BackgroundViewModel background) => Backgrounds.Add(background);
+
+        public void DisplayBackgroundError(string? message) => BackgroundError = message;
 
         public void DisplayRejectedImages(IReadOnlyCollection<RejectedImageViewModel> images)
         {
@@ -499,5 +532,40 @@ public sealed class MainPresenterTests
         : ILanAddressProvider
     {
         public IReadOnlyList<LanAddressOption> GetIPv4Addresses() => options;
+    }
+
+    private sealed class StubBackgroundCustomizationUseCase : IBackgroundCustomizationUseCase
+    {
+        public string? SelectedPath { get; private set; }
+        public (int Opacity, int Zoom, int X, int Y)? Appearance { get; private set; }
+        public bool Cleared { get; private set; }
+
+        public BackgroundCustomizationResult Load() => Result();
+
+        public BackgroundCustomizationResult SelectImage(string filePath)
+        {
+            SelectedPath = filePath;
+            return Result();
+        }
+
+        public BackgroundCustomizationResult UpdateAppearance(
+            int opacityPercent,
+            int zoomPercent,
+            int offsetX,
+            int offsetY)
+        {
+            Appearance = (opacityPercent, zoomPercent, offsetX, offsetY);
+            return Result();
+        }
+
+        public BackgroundCustomizationResult Clear()
+        {
+            Cleared = true;
+            return Result(BackgroundCustomizationError.ImageUnreadable);
+        }
+
+        private static BackgroundCustomizationResult Result(
+            BackgroundCustomizationError error = BackgroundCustomizationError.None) =>
+            new(BackgroundSettings.Default, null, error);
     }
 }

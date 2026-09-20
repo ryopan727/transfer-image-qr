@@ -9,6 +9,8 @@ using TransferImageQR.Presentation;
 using TransferImageQR.Application.Transfers;
 using TransferImageQR.Infrastructure.Networking;
 using TransferImageQR.Infrastructure.QrCodes;
+using TransferImageQR.Application.Backgrounds;
+using TransferImageQR.Infrastructure.Settings;
 
 namespace TransferImageQR
 {
@@ -41,6 +43,13 @@ namespace TransferImageQR
             var transferQrCode = new TransferQrCodeService(
                 transferUrlProvider,
                 new QrCoderPngGenerator());
+            var backgroundSettingsPath = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "TransferImageQR",
+                "background-settings.json");
+            var backgroundCustomization = new BackgroundCustomizationUseCase(
+                new JsonBackgroundSettingsStore(backgroundSettingsPath),
+                new SkiaBackgroundImageLoader());
 
             try
             {
@@ -51,9 +60,11 @@ namespace TransferImageQR
                     editDraft,
                     transferSession,
                     transferQrCode,
-                    lanAddressProvider);
+                    lanAddressProvider,
+                    backgroundCustomization);
                 mainForm.AttachPresenter(presenter);
                 presenter.Initialize();
+                presenter.LoadBackground();
                 System.Windows.Forms.Application.Run(mainForm);
             }
             finally

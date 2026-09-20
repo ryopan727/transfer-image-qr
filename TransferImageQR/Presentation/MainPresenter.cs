@@ -1,4 +1,5 @@
 using System.Net;
+using TransferImageQR.Application.Backgrounds;
 using TransferImageQR.Application.Drafts;
 using TransferImageQR.Application.Sessions;
 using TransferImageQR.Domain.Sessions;
@@ -12,7 +13,8 @@ public sealed class MainPresenter(
     IEditDraftUseCase editDraftUseCase,
     ITransferSessionUseCase transferSessionUseCase,
     ITransferQrCodeService transferQrCodeService,
-    ILanAddressProvider? lanAddressProvider = null)
+    ILanAddressProvider? lanAddressProvider = null,
+    IBackgroundCustomizationUseCase? backgroundCustomizationUseCase = null)
 {
     private bool _isAdding;
     private bool _isEditingEnabled = true;
@@ -20,6 +22,46 @@ public sealed class MainPresenter(
     private TransferQrCode? _transferQrCode;
     private IReadOnlyList<LanAddressOption> _lanAddressOptions = [];
     private IPAddress? _selectedLanAddress;
+
+    public void LoadBackground()
+    {
+        if (backgroundCustomizationUseCase is not null)
+        {
+            ApplyBackgroundResult(backgroundCustomizationUseCase.Load());
+        }
+    }
+
+    public void SelectBackgroundImage(string filePath)
+    {
+        if (backgroundCustomizationUseCase is not null)
+        {
+            ApplyBackgroundResult(backgroundCustomizationUseCase.SelectImage(filePath));
+        }
+    }
+
+    public void UpdateBackgroundAppearance(
+        int opacityPercent,
+        int zoomPercent,
+        int offsetX,
+        int offsetY)
+    {
+        if (backgroundCustomizationUseCase is not null)
+        {
+            ApplyBackgroundResult(backgroundCustomizationUseCase.UpdateAppearance(
+                opacityPercent,
+                zoomPercent,
+                offsetX,
+                offsetY));
+        }
+    }
+
+    public void ClearBackground()
+    {
+        if (backgroundCustomizationUseCase is not null)
+        {
+            ApplyBackgroundResult(backgroundCustomizationUseCase.Clear());
+        }
+    }
 
     public void Initialize()
     {
@@ -42,7 +84,10 @@ public sealed class MainPresenter(
         }
 
         var selected = _lanAddressOptions.FirstOrDefault(
-            option => string.Equals(option.Address.ToString(), address, StringComparison.Ordinal));
+            option => string.Equals(
+                option.Address.ToString(),
+                address,
+                StringComparison.Ordinal));
         if (selected is not null)
         {
             _selectedLanAddress = selected.Address;
@@ -202,6 +247,25 @@ public sealed class MainPresenter(
                     $"{option.InterfaceName} — {option.Address}"))
                 .ToArray(),
             _selectedLanAddress?.ToString());
+
+    private void ApplyBackgroundResult(BackgroundCustomizationResult result)
+    {
+        view.ApplyBackground(new BackgroundViewModel(
+            result.ImagePng,
+            result.Settings.OpacityPercent,
+            result.Settings.ZoomPercent,
+            result.Settings.OffsetX,
+            result.Settings.OffsetY));
+        view.DisplayBackgroundError(result.Error switch
+        {
+            BackgroundCustomizationError.None => null,
+            BackgroundCustomizationError.ImageUnreadable =>
+                "背景画像を読み込めません。",
+            BackgroundCustomizationError.SettingsCouldNotBeSaved =>
+                "背景設定を保存できません。",
+            _ => "背景設定を反映できませんでした。",
+        });
+    }
 
     private static string ToUserMessage(DraftImageRejectionReason reason) =>
         reason switch

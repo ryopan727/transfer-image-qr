@@ -17,9 +17,10 @@
 - 5分間のメモリ内転送SessionとQRコード生成
 - Kestrelによる同一LAN向け画像一覧・元画像配信
 - iPhone Safari向け表示、Token検証、期限切れ拒否
-- MVP-001〜MVP-011で実装済みの振る舞い
+- Main Windowのカスタム背景画像、表示調整、設定永続化
+- MVP-001〜MVP-011とMVP-013で実装済みの振る舞い
 
-システムトレイ、自動起動、背景画像設定など、未実装Issueの振る舞いは本書の対象外とする。
+システムトレイ、自動起動など、未実装Issueの振る舞いは本書の対象外とする。
 
 ## Actors / External Systems
 
@@ -46,6 +47,42 @@ Scenario: BDD-APP-001 アプリを起動する
   When 利用者がTransferImageQRを起動する
   Then Main Windowが表示される
   And Draftへ画像を追加できる状態になる
+```
+
+## Feature: Main Window背景のカスタマイズ
+
+### Rule: ローカル画像を安全に背景表示して設定を維持できる
+
+```gherkin
+Scenario: BDD-BACKGROUND-001 透過画像を背景へ設定する
+  Given Main Windowが既定背景で表示されている
+  When 利用者がAlphaを持つローカルPNGを背景として選択する
+  Then PNGの透明部分を維持してMain Window背景に表示される
+  And D&D領域、QR領域、主要文字は読み取れる
+
+Scenario: BDD-BACKGROUND-002 背景の見え方を調整する
+  Given カスタム背景が表示されている
+  When 利用者が不透明度、拡大率、X位置、Y位置を変更する
+  Then Aspect比を維持した背景が指定値で再描画される
+  And 変更した設定が保存される
+
+Scenario: BDD-BACKGROUND-003 再起動後に背景設定を復元する
+  Given カスタム背景と表示設定が保存されている
+  When TransferImageQRを終了して再起動する
+  Then 同じ画像、不透明度、拡大率、X位置、Y位置で背景が表示される
+
+Scenario: BDD-BACKGROUND-004 カスタム背景をClearする
+  Given カスタム背景が設定されている
+  When 利用者が背景をクリアする
+  Then Main Windowは既定背景へ戻る
+  And 再起動してもカスタム背景は復元されない
+
+Scenario: BDD-BACKGROUND-005 読み込めない保存画像から復旧する
+  Given 保存済み背景画像が移動、削除、または破損している
+  When TransferImageQRを起動する
+  Then Main Windowは既定背景で表示される
+  And 背景を読み込めなかったことが表示される
+  And Draftと転送の操作は継続できる
 ```
 
 ## Feature: Draft画像入力
@@ -290,6 +327,11 @@ Scenario: BDD-E2E-002 期限切れ後に新しい転送を開始する
 | BDD Scenario | Test Layer | Test / Evidence | Last Verified |
 | --- | --- | --- | --- |
 | BDD-APP-001 | Build / Runtime smoke | `task verify`; WinForms process・Kestrel起動確認 | 2026-09-20 |
+| BDD-BACKGROUND-001 | Unit / Presentation | Alpha付きPNG decode／pixel描画、Form前景面 tests | 2026-09-20 |
+| BDD-BACKGROUND-002 | Unit / Presentation | 値正規化、設定保存、描画矩形、Form control tests | 2026-09-20 |
+| BDD-BACKGROUND-003 | Integration / Presentation | JSON round-trip、Presenter初期復元 tests | 2026-09-20 |
+| BDD-BACKGROUND-004 | Unit / Presentation | Clearと既定値保存、Image解放 tests | 2026-09-20 |
+| BDD-BACKGROUND-005 | Unit / Presentation | 読取失敗FallbackとError表示 tests | 2026-09-20 |
 | BDD-DRAFT-001 | Unit / Presentation | AddImages use case、Presenter、Form integration tests | 2026-09-20 |
 | BDD-DRAFT-002 | Unit / Presentation | 追記順序と再描画のtests | 2026-09-20 |
 | BDD-DRAFT-003 | Unit / Presentation | 混在入力、非File入力、拒否理由表示のtests | 2026-09-20 |
@@ -350,4 +392,4 @@ Scenario: BDD-E2E-002 期限切れ後に新しい転送を開始する
 | `specs/issue-0009-safari-original-image.md` | BDD-IMAGE-001〜003 | 元画像inline配信とRange応答 |
 | `specs/issue-0010-expired-session-page.md` | BDD-SESSION-004, BDD-ACCESS-001〜004, BDD-E2E-002 | 期限切れ拒否、案内画面、再転送 |
 | `specs/issue-0011-lan-interface-selection.md` | BDD-NETWORK-001〜003, BDD-TRANSFER-001〜002 | LAN IPv4候補の表示・選択・保持とQR反映 |
-
+| `specs/issue-0013-custom-background.md` | BDD-BACKGROUND-001〜005 | Main Window背景画像、表示調整、永続化、Clear、復旧 |
