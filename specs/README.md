@@ -36,3 +36,4 @@
 | [issue-0013-custom-background.md](issue-0013-custom-background.md) | Verified | [Issue #13](https://github.com/ryopan727/transfer-image-qr/issues/13) | Customize the desktop background image, appearance, persistence, and reset |
 | [issue-0014-windows-auto-start.md](issue-0014-windows-auto-start.md) | Verified | [Issue #14](https://github.com/ryopan727/transfer-image-qr/issues/14) | Register or remove per-user Windows login startup |
 | [issue-0015-transfer-diagnostics.md](issue-0015-transfer-diagnostics.md) | Verified | [Issue #15](https://github.com/ryopan727/transfer-image-qr/issues/15) | Diagnose server startup, LAN endpoint, firewall, and missing source images |
+| [issue-0016-mvp-acceptance.md](issue-0016-mvp-acceptance.md) | Verified | [Issue #16](https://github.com/ryopan727/transfer-image-qr/issues/16) | Verify the MVP main flow with automated and reproducible acceptance tests |
