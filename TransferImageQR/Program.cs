@@ -26,6 +26,7 @@ namespace TransferImageQR
         static void Main()
         {
             ApplicationConfiguration.Initialize();
+            ApplicationFonts.Initialize(typeof(Program).Assembly);
 
             var draft = new TransferDraft();
             var thumbnailProvider = new SkiaImageThumbnailProvider();
@@ -98,6 +99,7 @@ namespace TransferImageQR
             finally
             {
                 httpServer.DisposeAsync().AsTask().GetAwaiter().GetResult();
+                ApplicationFonts.Shutdown();
             }
         }
     }

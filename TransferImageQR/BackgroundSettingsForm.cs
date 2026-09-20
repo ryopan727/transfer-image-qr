@@ -23,6 +23,7 @@ public sealed class BackgroundSettingsForm : Form, IBackgroundSettingsView
         _presenter = presenter ?? throw new ArgumentNullException(nameof(presenter));
         _selectFile = selectFile ?? SelectBackgroundFile;
         InitializeControls();
+        ApplicationFonts.ApplyTo(this);
     }
 
     public void DisplaySettings(BackgroundViewModel background)
