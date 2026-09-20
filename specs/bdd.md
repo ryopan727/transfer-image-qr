@@ -21,7 +21,7 @@
 - Windowsシステムトレイ常駐とMain Window再表示・明示終了
 - Windows Login時のCurrent User自動起動設定
 - ネットワーク・転送失敗の利用者向け診断
-- MVP-001〜MVP-015で実装済みの振る舞い
+- MVP-001〜MVP-016で実装・検証する振る舞い
 
 未実装Issueの振る舞いは本書の対象外とする。
 
@@ -441,34 +441,34 @@ Scenario: BDD-E2E-002 期限切れ後に新しい転送を開始する
 | BDD-BACKGROUND-005 | Unit / Presentation | 読取失敗FallbackとError表示 tests | 2026-09-20 |
 | BDD-DRAFT-001 | Unit / Presentation | AddImages use case、Presenter、Form integration tests | 2026-09-20 |
 | BDD-DRAFT-002 | Unit / Presentation | 追記順序と再描画のtests | 2026-09-20 |
-| BDD-DRAFT-003 | Unit / Presentation | 混在入力、非File入力、拒否理由表示のtests | 2026-09-20 |
-| BDD-DRAFT-004 | Unit | 10MB境界とSize超過のtests | 2026-09-20 |
-| BDD-DRAFT-005 | Unit | 20枚境界と21枚目拒否のtests | 2026-09-20 |
+| BDD-DRAFT-003 | Unit / Presentation / Acceptance | 混在入力、非対応形式、拒否理由表示のtests | 2026-09-20 |
+| BDD-DRAFT-004 | Unit / Acceptance | 10MB境界と実File Size超過のtests | 2026-09-20 |
+| BDD-DRAFT-005 | Unit / Acceptance | 20枚境界と実画像21枚目拒否のtests | 2026-09-20 |
 | BDD-DRAFT-006 | Unit / Presentation | 個別削除UseCase、Presenter、Form tests | 2026-09-20 |
 | BDD-DRAFT-007 | Unit / Presentation | ClearとQR作成可否のtests | 2026-09-20 |
-| BDD-DRAFT-008 | Unit / Presentation | Active後の変更拒否tests | 2026-09-20 |
-| BDD-SESSION-001 | Unit / Presentation | Session確定、snapshot、編集無効化tests | 2026-09-20 |
+| BDD-DRAFT-008 | Unit / Presentation / Acceptance | Active後の変更拒否tests | 2026-09-20 |
+| BDD-SESSION-001 | Unit / Presentation / Acceptance | Session確定、snapshot、編集無効化tests | 2026-09-20 |
 | BDD-SESSION-002 | Unit | Token entropy、URL-safe、unique tests | 2026-09-20 |
-| BDD-SESSION-003 | Unit | `TimeProvider`を使う5分境界tests | 2026-09-20 |
+| BDD-SESSION-003 | Unit / Acceptance | `TimeProvider`を使う5分境界tests | 2026-09-20 |
 | BDD-SESSION-004 | Unit / Presentation | `StartNewTransfer_AfterActiveSession_ClearsSessionAndResetsDraft` | 2026-09-20 |
 | BDD-NETWORK-001 | Unit / Presentation | `SelectUsable_ReturnsPrivateIPv4CandidatesInDeterministicOrder`、Presenter／Form候補表示tests | 2026-09-20 |
 | BDD-NETWORK-002 | Unit / Presentation / Integration | 選択Event、Active時無効化、URL Host、QR生成tests | 2026-09-20 |
 | BDD-NETWORK-003 | Presentation | `SelectedLanAddress_IsUsedForQrAndRetainedAfterStartingNewTransfer` | 2026-09-20 |
-| BDD-TRANSFER-001 | Unit / Presentation / Runtime smoke | 選択AddressのURL／QR反映、Kestrel listen | 2026-09-20 |
+| BDD-TRANSFER-001 | Unit / Presentation / Acceptance / Runtime smoke | 選択AddressのURL／QR反映、Kestrel listen | 2026-09-20 |
 | BDD-TRANSFER-002 | Unit / Presentation | 候補なしのPresenter／Form表示tests | 2026-09-20 |
 | BDD-TRANSFER-003 | Unit / Runtime smoke | Server lifecycle tests、Process終了確認 | 2026-09-20 |
-| BDD-WEB-001 | Integration / E2E | 実Kestrel gallery integration: Passed; iPhone Camera/Safari: Not Run | 2026-09-20 |
+| BDD-WEB-001 | Integration / Acceptance / E2E | 実Fileから実Kestrel gallery: Passed; iPhone Camera/Safari: Not Run | 2026-09-20 |
 | BDD-WEB-002 | Integration / E2E | 20枚、viewport、Grid markup: Passed; iPhone実機visual: Not Run | 2026-09-20 |
 | BDD-WEB-003 | Integration | HTML encodeとunsafe markup不在のtests | 2026-09-20 |
-| BDD-IMAGE-001 | Integration / E2E | 元byte、Content-Type、inline: Passed; iPhone保存: Not Run | 2026-09-20 |
+| BDD-IMAGE-001 | Integration / Acceptance / E2E | 実JPEG/PNG/WebPの元byte、Content-Type、inline: Passed; iPhone保存: Not Run | 2026-09-20 |
 | BDD-IMAGE-002 | Integration | 実Kestrel Range Request test | 2026-09-20 |
 | BDD-IMAGE-003 | Integration | UTF-8 `filename*` test | 2026-09-20 |
-| BDD-ACCESS-001 | Unit / Integration | 固定時間Token比較、wrong token 404 tests | 2026-09-20 |
-| BDD-ACCESS-002 | Unit / Integration / E2E | 5分境界、gallery 410 HTML: Passed; iPhone実機visual: Not Run | 2026-09-20 |
-| BDD-ACCESS-003 | Integration / E2E | image 410、元byte不在: Passed; iPhone実機visual: Not Run | 2026-09-20 |
+| BDD-ACCESS-001 | Unit / Integration / Acceptance | 固定時間Token比較、wrong token 404 tests | 2026-09-20 |
+| BDD-ACCESS-002 | Unit / Integration / Acceptance / E2E | 5分境界、gallery 410 HTML: Passed; iPhone実機visual: Not Run | 2026-09-20 |
+| BDD-ACCESS-003 | Integration / Acceptance / E2E | image 410、元byte不在: Passed; iPhone実機visual: Not Run | 2026-09-20 |
 | BDD-ACCESS-004 | Integration | Active一覧／画像とExpired応答のno-store tests | 2026-09-20 |
-| BDD-E2E-001 | E2E | Not Run — GUI E2E harnessと実iPhone環境が未整備 | Not Run |
-| BDD-E2E-002 | E2E | Not Run — 時刻制御を含むGUI E2E harnessと実iPhone環境が未整備 | Not Run |
+| BDD-E2E-001 | Acceptance / Manual E2E | File→QR→実Kestrel→元画像の自動部分: Passed; GUI D&D・iPhone Camera/Safari/保存: README手順、Not Run | 2026-09-20 / Manual Not Run |
+| BDD-E2E-002 | Acceptance / Manual E2E | 5分失効→410の自動部分: Passed; iPhone実機とGUI再転送: README手順、Not Run | 2026-09-20 / Manual Not Run |
 
 ## Operational Constraints
 
@@ -503,3 +503,4 @@ Scenario: BDD-E2E-002 期限切れ後に新しい転送を開始する
 | `specs/issue-0013-custom-background.md` | BDD-BACKGROUND-001〜005 | Main Window背景画像、表示調整、永続化、Clear、復旧 |
 | `specs/issue-0014-windows-auto-start.md` | BDD-AUTOSTART-001〜004 | Current UserのWindows Login自動起動登録・解除・復元・Error表示 |
 | `specs/issue-0015-transfer-diagnostics.md` | BDD-DIAGNOSTICS-001〜003 | Server起動失敗、配信Endpoint、接続確認事項、消失元画像の診断 |
+| `specs/issue-0016-mvp-acceptance.md` | 既存MVP Scenario全般、BDD-E2E-001〜002 | Production adapterを横断する自動受入試験と実機手動手順 |

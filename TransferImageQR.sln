@@ -17,6 +17,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{6458FEF2
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TransferImageQR.IntegrationTests", "tests\TransferImageQR.IntegrationTests\TransferImageQR.IntegrationTests.csproj", "{5D259F32-9BA9-4BCB-B5EE-C335FA5BE343}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TransferImageQR.AcceptanceTests", "tests\TransferImageQR.AcceptanceTests\TransferImageQR.AcceptanceTests.csproj", "{6DA44177-AA55-46D7-8E50-B1227411533B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -47,6 +49,10 @@ Global
 		{5D259F32-9BA9-4BCB-B5EE-C335FA5BE343}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5D259F32-9BA9-4BCB-B5EE-C335FA5BE343}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{5D259F32-9BA9-4BCB-B5EE-C335FA5BE343}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6DA44177-AA55-46D7-8E50-B1227411533B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6DA44177-AA55-46D7-8E50-B1227411533B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6DA44177-AA55-46D7-8E50-B1227411533B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6DA44177-AA55-46D7-8E50-B1227411533B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -56,5 +62,6 @@ Global
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{5D259F32-9BA9-4BCB-B5EE-C335FA5BE343} = {6458FEF2-B4DB-4BBD-868B-843455A7E0E6}
+		{6DA44177-AA55-46D7-8E50-B1227411533B} = {6458FEF2-B4DB-4BBD-868B-843455A7E0E6}
 	EndGlobalSection
 EndGlobal

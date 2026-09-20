@@ -34,16 +34,21 @@ tasks:
     cmds:
       - dotnet test tests/TransferImageQR.IntegrationTests/TransferImageQR.IntegrationTests.csproj --no-build
 
+  test:acceptance:
+    desc: Run the MVP acceptance suite with real files, image decoding, and Kestrel
+    deps: [build]
+    cmds:
+      - dotnet test tests/TransferImageQR.AcceptanceTests/TransferImageQR.AcceptanceTests.csproj --no-build
+
   test:all:
-    desc: Run all unit, presentation, and integration tests
+    desc: Run all unit, presentation, integration, and acceptance tests
     deps: [build]
     cmds:
       - dotnet test tests/TransferImageQR.UnitTests/TransferImageQR.UnitTests.csproj --no-build
       - dotnet test tests/TransferImageQR.IntegrationTests/TransferImageQR.IntegrationTests.csproj --no-build
+      - dotnet test tests/TransferImageQR.AcceptanceTests/TransferImageQR.AcceptanceTests.csproj --no-build
 
   verify:
-    desc: Restore, build, and run the fast unit test suite
+    desc: Restore, build, and run every automated test suite
     cmds:
-      - task: restore
-      - task: build
-      - task: test
+      - task: test:all
