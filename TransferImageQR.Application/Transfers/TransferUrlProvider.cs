@@ -1,16 +1,14 @@
+using System.Net;
 using System.Net.Sockets;
 
 namespace TransferImageQR.Application.Transfers;
 
-public sealed class TransferUrlProvider(
-    IHttpServerEndpoint serverEndpoint,
-    ILanAddressProvider lanAddressProvider) : ITransferUrlProvider
+public sealed class TransferUrlProvider(IHttpServerEndpoint serverEndpoint) : ITransferUrlProvider
 {
-    public Uri? Create(string sessionToken)
+    public Uri? Create(string sessionToken, IPAddress? address)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(sessionToken);
 
-        var address = lanAddressProvider.GetPreferredIPv4Address();
         if (!serverEndpoint.IsRunning ||
             serverEndpoint.Port is < 1 or > 65535 ||
             address?.AddressFamily != AddressFamily.InterNetwork)

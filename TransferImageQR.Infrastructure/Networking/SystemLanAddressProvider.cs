@@ -7,7 +7,7 @@ namespace TransferImageQR.Infrastructure.Networking;
 
 public sealed class SystemLanAddressProvider : ILanAddressProvider
 {
-    public IPAddress? GetPreferredIPv4Address()
+    public IReadOnlyList<LanAddressOption> GetIPv4Addresses()
     {
         var candidates = new List<LanAddressCandidate>();
         foreach (var networkInterface in NetworkInterface.GetAllNetworkInterfaces())
@@ -20,6 +20,7 @@ public sealed class SystemLanAddressProvider : ILanAddressProvider
                     .Where(address => address.Address.AddressFamily == AddressFamily.InterNetwork)
                     .Select(address => new LanAddressCandidate(
                         address.Address,
+                        networkInterface.Name,
                         networkInterface.NetworkInterfaceType,
                         networkInterface.OperationalStatus,
                         interfaceIndex)));
@@ -30,10 +31,11 @@ public sealed class SystemLanAddressProvider : ILanAddressProvider
             }
         }
 
-        return SelectPreferred(candidates);
+        return SelectUsable(candidates);
     }
 
-    public static IPAddress? SelectPreferred(IEnumerable<LanAddressCandidate> candidates) =>
+    public static IReadOnlyList<LanAddressOption> SelectUsable(
+        IEnumerable<LanAddressCandidate> candidates) =>
         candidates
             .Where(candidate =>
                 candidate.OperationalStatus == OperationalStatus.Up &&
@@ -41,8 +43,13 @@ public sealed class SystemLanAddressProvider : ILanAddressProvider
             .OrderBy(candidate => IsPhysicalLan(candidate.InterfaceType) ? 0 : 1)
             .ThenBy(candidate => candidate.InterfaceIndex)
             .ThenBy(candidate => candidate.Address.ToString(), StringComparer.Ordinal)
-            .Select(candidate => candidate.Address)
-            .FirstOrDefault();
+            .DistinctBy(candidate => candidate.Address)
+            .Select(candidate => new LanAddressOption(
+                candidate.Address,
+                string.IsNullOrWhiteSpace(candidate.InterfaceName)
+                    ? "Network Interface"
+                    : candidate.InterfaceName))
+            .ToArray();
 
     private static bool IsPrivateIPv4(IPAddress address)
     {

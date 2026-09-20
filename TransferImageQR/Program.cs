@@ -36,9 +36,8 @@ namespace TransferImageQR
                 TimeProvider.System);
             var httpServer = new LanImageHttpServer(transferSession);
             httpServer.StartAsync().GetAwaiter().GetResult();
-            var transferUrlProvider = new TransferUrlProvider(
-                httpServer,
-                new SystemLanAddressProvider());
+            var lanAddressProvider = new SystemLanAddressProvider();
+            var transferUrlProvider = new TransferUrlProvider(httpServer);
             var transferQrCode = new TransferQrCodeService(
                 transferUrlProvider,
                 new QrCoderPngGenerator());
@@ -51,8 +50,10 @@ namespace TransferImageQR
                     addImagesToDraft,
                     editDraft,
                     transferSession,
-                    transferQrCode);
+                    transferQrCode,
+                    lanAddressProvider);
                 mainForm.AttachPresenter(presenter);
+                presenter.Initialize();
                 System.Windows.Forms.Application.Run(mainForm);
             }
             finally

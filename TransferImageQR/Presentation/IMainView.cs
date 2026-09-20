@@ -2,6 +2,12 @@ namespace TransferImageQR.Presentation;
 
 public interface IMainView
 {
+    void DisplayLanAddresses(
+        IReadOnlyCollection<LanAddressViewModel> addresses,
+        string? selectedAddress);
+
+    void SetLanAddressSelectionEnabled(bool enabled);
+
     void AppendDraftImages(IReadOnlyCollection<DraftImageViewModel> images);
 
     void SetDraftCount(int count);

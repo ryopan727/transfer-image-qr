@@ -1,3 +1,4 @@
+using System.Net;
 using TransferImageQR.Application.Drafts;
 using TransferImageQR.Application.Sessions;
 using TransferImageQR.Domain.Sessions;
@@ -10,12 +11,43 @@ public sealed class MainPresenter(
     IAddImagesToDraftUseCase addImagesToDraftUseCase,
     IEditDraftUseCase editDraftUseCase,
     ITransferSessionUseCase transferSessionUseCase,
-    ITransferQrCodeService transferQrCodeService)
+    ITransferQrCodeService transferQrCodeService,
+    ILanAddressProvider? lanAddressProvider = null)
 {
     private bool _isAdding;
     private bool _isEditingEnabled = true;
     private int _draftCount;
     private TransferQrCode? _transferQrCode;
+    private IReadOnlyList<LanAddressOption> _lanAddressOptions = [];
+    private IPAddress? _selectedLanAddress;
+
+    public void Initialize()
+    {
+        _lanAddressOptions = lanAddressProvider?.GetIPv4Addresses() ?? [];
+        if (_selectedLanAddress is null ||
+            !_lanAddressOptions.Any(option => option.Address.Equals(_selectedLanAddress)))
+        {
+            _selectedLanAddress = _lanAddressOptions.FirstOrDefault()?.Address;
+        }
+
+        DisplayLanAddressSelection();
+        view.SetLanAddressSelectionEnabled(_isEditingEnabled && _lanAddressOptions.Count > 0);
+    }
+
+    public void SelectLanAddress(string? address)
+    {
+        if (!_isEditingEnabled || string.IsNullOrWhiteSpace(address))
+        {
+            return;
+        }
+
+        var selected = _lanAddressOptions.FirstOrDefault(
+            option => string.Equals(option.Address.ToString(), address, StringComparison.Ordinal));
+        if (selected is not null)
+        {
+            _selectedLanAddress = selected.Address;
+        }
+    }
 
     public async Task AddDroppedFilesAsync(
         IReadOnlyCollection<string> filePaths,
@@ -99,6 +131,7 @@ public sealed class MainPresenter(
         view.SetDropEnabled(enabled && !_isAdding);
         view.SetDraftActionsEnabled(enabled && !_isAdding && _draftCount > 0);
         view.SetDraftEditingEnabled(enabled);
+        view.SetLanAddressSelectionEnabled(enabled && _lanAddressOptions.Count > 0);
     }
 
     public void CreateTransferSession()
@@ -116,7 +149,7 @@ public sealed class MainPresenter(
 
         _transferQrCode = result.Session is null
             ? null
-            : transferQrCodeService.Create(result.Session.Token);
+            : transferQrCodeService.Create(result.Session.Token, _selectedLanAddress);
         SetDraftEditingEnabled(false);
         RefreshTransferSessionState();
     }
@@ -150,6 +183,7 @@ public sealed class MainPresenter(
         view.DisplayRejectedImages([]);
         UpdateDraftState(0);
         SetDraftEditingEnabled(true);
+        DisplayLanAddressSelection();
         view.DisplayDraftState();
     }
 
@@ -159,6 +193,15 @@ public sealed class MainPresenter(
         view.SetDraftCount(count);
         view.SetDraftActionsEnabled(_isEditingEnabled && count > 0);
     }
+
+    private void DisplayLanAddressSelection() =>
+        view.DisplayLanAddresses(
+            _lanAddressOptions
+                .Select(option => new LanAddressViewModel(
+                    option.Address.ToString(),
+                    $"{option.InterfaceName} — {option.Address}"))
+                .ToArray(),
+            _selectedLanAddress?.ToString());
 
     private static string ToUserMessage(DraftImageRejectionReason reason) =>
         reason switch

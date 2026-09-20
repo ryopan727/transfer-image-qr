@@ -1,3 +1,4 @@
+using System.Net;
 using TransferImageQR.Application.Drafts;
 using TransferImageQR.Application.Sessions;
 using TransferImageQR.Application.Transfers;
@@ -178,12 +179,16 @@ public sealed class MainPresenterTests
             new Uri("http://192.168.1.20:51846/transfer/token"),
             [1, 2, 3]);
         var qrCodeService = new StubTransferQrCodeService(qrCode);
+        var lanAddressProvider = new StubLanAddressProvider(
+            new LanAddressOption(IPAddress.Parse("192.168.1.20"), "Ethernet"));
         var sut = CreatePresenter(
             view,
             new StubAddImagesToDraftUseCase(),
             new StubEditDraftUseCase(),
             sessionUseCase,
-            qrCodeService);
+            qrCodeService,
+            lanAddressProvider);
+        sut.Initialize();
 
         sut.CreateTransferSession();
 
@@ -193,8 +198,78 @@ public sealed class MainPresenterTests
         Assert.False(view.TransferSession.IsExpired);
         Assert.Equal(expiresAt, view.TransferSession.ExpiresAt);
         Assert.Equal("token", qrCodeService.SessionToken);
+        Assert.Equal(IPAddress.Parse("192.168.1.20"), qrCodeService.Address);
         Assert.Equal(qrCode.Url.AbsoluteUri, view.TransferSession.TransferUrl);
         Assert.Equal(qrCode.PngBytes, view.TransferSession.QrCodePng);
+    }
+
+    [Fact]
+    public void Initialize_WithMultipleLanAddresses_DisplaysCandidatesAndSelectsFirst()
+    {
+        var view = new FakeMainView();
+        var sut = CreatePresenter(
+            view,
+            new StubAddImagesToDraftUseCase(),
+            new StubEditDraftUseCase(),
+            new StubTransferSessionUseCase(),
+            lanAddressProvider: new StubLanAddressProvider(
+                new LanAddressOption(IPAddress.Parse("192.168.1.20"), "Ethernet"),
+                new LanAddressOption(IPAddress.Parse("192.168.1.50"), "Wi-Fi")));
+
+        sut.Initialize();
+
+        Assert.Equal(
+            ["Ethernet — 192.168.1.20", "Wi-Fi — 192.168.1.50"],
+            view.LanAddresses.Select(address => address.DisplayName));
+        Assert.Equal("192.168.1.20", view.SelectedLanAddress);
+        Assert.True(view.LanAddressSelectionEnabled);
+    }
+
+    [Fact]
+    public void SelectedLanAddress_IsUsedForQrAndRetainedAfterStartingNewTransfer()
+    {
+        var view = new FakeMainView();
+        var qrCodeService = new StubTransferQrCodeService();
+        var sut = CreatePresenter(
+            view,
+            new StubAddImagesToDraftUseCase(),
+            new StubEditDraftUseCase(),
+            new StubTransferSessionUseCase(createResult: CreateSuccessfulSession()),
+            qrCodeService,
+            new StubLanAddressProvider(
+                new LanAddressOption(IPAddress.Parse("192.168.1.20"), "Ethernet"),
+                new LanAddressOption(IPAddress.Parse("192.168.1.50"), "Wi-Fi")));
+        sut.Initialize();
+
+        sut.SelectLanAddress("192.168.1.50");
+        sut.CreateTransferSession();
+
+        Assert.Equal(IPAddress.Parse("192.168.1.50"), qrCodeService.Address);
+        Assert.False(view.LanAddressSelectionEnabled);
+
+        sut.SelectLanAddress("192.168.1.20");
+        sut.StartNewTransfer();
+
+        Assert.Equal("192.168.1.50", view.SelectedLanAddress);
+        Assert.True(view.LanAddressSelectionEnabled);
+    }
+
+    [Fact]
+    public void Initialize_WithoutLanAddresses_DisplaysDisabledEmptySelection()
+    {
+        var view = new FakeMainView();
+        var sut = CreatePresenter(
+            view,
+            new StubAddImagesToDraftUseCase(),
+            new StubEditDraftUseCase(),
+            new StubTransferSessionUseCase(),
+            lanAddressProvider: new StubLanAddressProvider());
+
+        sut.Initialize();
+
+        Assert.Empty(view.LanAddresses);
+        Assert.Null(view.SelectedLanAddress);
+        Assert.False(view.LanAddressSelectionEnabled);
     }
 
     [Fact]
@@ -278,13 +353,15 @@ public sealed class MainPresenterTests
         IAddImagesToDraftUseCase addUseCase,
         IEditDraftUseCase editUseCase,
         ITransferSessionUseCase sessionUseCase,
-        ITransferQrCodeService? qrCodeService = null) =>
+        ITransferQrCodeService? qrCodeService = null,
+        ILanAddressProvider? lanAddressProvider = null) =>
         new(
             view,
             addUseCase,
             editUseCase,
             sessionUseCase,
-            qrCodeService ?? new StubTransferQrCodeService());
+            qrCodeService ?? new StubTransferQrCodeService(),
+            lanAddressProvider ?? new StubLanAddressProvider());
 
     private sealed class StubAddImagesToDraftUseCase(params AddImagesToDraftResult[] results)
         : IAddImagesToDraftUseCase
@@ -323,6 +400,9 @@ public sealed class MainPresenterTests
         public bool DraftEditingEnabled { get; private set; } = true;
         public TransferSessionViewModel? TransferSession { get; private set; }
         public bool DraftStateDisplayed { get; private set; }
+        public IReadOnlyCollection<LanAddressViewModel> LanAddresses { get; private set; } = [];
+        public string? SelectedLanAddress { get; private set; }
+        public bool LanAddressSelectionEnabled { get; private set; }
 
         public void AppendDraftImages(IReadOnlyCollection<DraftImageViewModel> images) =>
             AppendedImages.AddRange(images);
@@ -342,6 +422,17 @@ public sealed class MainPresenterTests
         public void DisplayTransferSession(TransferSessionViewModel session) => TransferSession = session;
 
         public void DisplayDraftState() => DraftStateDisplayed = true;
+
+        public void DisplayLanAddresses(
+            IReadOnlyCollection<LanAddressViewModel> addresses,
+            string? selectedAddress)
+        {
+            LanAddresses = addresses;
+            SelectedLanAddress = selectedAddress;
+        }
+
+        public void SetLanAddressSelectionEnabled(bool enabled) =>
+            LanAddressSelectionEnabled = enabled;
 
         public void DisplayRejectedImages(IReadOnlyCollection<RejectedImageViewModel> images)
         {
@@ -394,11 +485,19 @@ public sealed class MainPresenterTests
         : ITransferQrCodeService
     {
         public string? SessionToken { get; private set; }
+        public IPAddress? Address { get; private set; }
 
-        public TransferQrCode? Create(string sessionToken)
+        public TransferQrCode? Create(string sessionToken, IPAddress? address)
         {
             SessionToken = sessionToken;
+            Address = address;
             return result;
         }
+    }
+
+    private sealed class StubLanAddressProvider(params LanAddressOption[] options)
+        : ILanAddressProvider
+    {
+        public IReadOnlyList<LanAddressOption> GetIPv4Addresses() => options;
     }
 }
