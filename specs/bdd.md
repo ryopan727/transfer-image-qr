@@ -160,7 +160,7 @@ Scenario: BDD-BACKGROUND-001 透過画像を背景へ設定する
 
 Scenario: BDD-BACKGROUND-002 背景の見え方を調整する
   Given カスタム背景が表示されている
-  When 利用者が不透明度、拡大率、X位置、Y位置を変更する
+  When 利用者が背景設定専用Formで不透明度、拡大率、X位置、Y位置を変更する
   Then Aspect比を維持した背景が指定値で再描画される
   And 変更した設定が保存される
 
@@ -171,7 +171,7 @@ Scenario: BDD-BACKGROUND-003 再起動後に背景設定を復元する
 
 Scenario: BDD-BACKGROUND-004 カスタム背景をClearする
   Given カスタム背景が設定されている
-  When 利用者が背景をクリアする
+  When 利用者が背景設定専用Formで背景をクリアする
   Then Main Windowは既定背景へ戻る
   And 再起動してもカスタム背景は復元されない
 
@@ -187,6 +187,13 @@ Scenario: BDD-BACKGROUND-006 背景Clearで前景面を既定表示へ戻す
   When 利用者が背景をクリアする
   Then D&D領域とDraft画像一覧は既定の不透明表示へ戻る
   And Draft画像と操作状態は維持される
+
+Scenario: BDD-BACKGROUND-007 設定Menuから背景設定専用Formを開く
+  Given Main WindowにDraftまたはActive Sessionの状態がある
+  When 利用者が設定Menuから背景設定を選ぶ
+  Then 背景設定専用Formが1つだけ開く
+  And 現在の背景Preview、不透明度、拡大率、X位置、Y位置が表示される
+  And 専用Formを閉じてもMain WindowのDraftまたはSession状態は維持される
 ```
 
 ## Feature: Draft画像入力
@@ -449,6 +456,7 @@ Scenario: BDD-E2E-002 期限切れ後に新しい転送を開始する
 | BDD-BACKGROUND-004 | Unit / Presentation | Clearと既定値保存、Image解放 tests | 2026-09-20 |
 | BDD-BACKGROUND-005 | Unit / Presentation | 読取失敗FallbackとError表示 tests | 2026-09-20 |
 | BDD-BACKGROUND-006 | Presentation | 背景Clear時の既定面復帰とDraft状態維持 tests | 2026-09-20 |
+| BDD-BACKGROUND-007 | Presenter / Presentation | 設定Menu遷移、現在値表示、Form重複防止、Main状態維持 tests | 2026-09-20 |
 | BDD-DRAFT-001 | Unit / Presentation | AddImages use case、Presenter、Form integration tests | 2026-09-20 |
 | BDD-DRAFT-002 | Unit / Presentation | 追記順序と再描画のtests | 2026-09-20 |
 | BDD-DRAFT-003 | Unit / Presentation / Acceptance | 混在入力、非対応形式、拒否理由表示のtests | 2026-09-20 |
@@ -515,4 +523,5 @@ Scenario: BDD-E2E-002 期限切れ後に新しい転送を開始する
 | `specs/issue-0015-transfer-diagnostics.md` | BDD-DIAGNOSTICS-001〜003 | Server起動失敗、配信Endpoint、接続確認事項、消失元画像の診断 |
 | `specs/issue-0016-mvp-acceptance.md` | 既存MVP Scenario全般、BDD-E2E-001〜002 | Production adapterを横断する自動受入試験と実機手動手順 |
 | `specs/issue-0036-transparent-draft-surfaces.md` | BDD-BACKGROUND-001、BDD-BACKGROUND-006 | D&D領域とDraft一覧の背景透過、可読性、Clear時の復帰 |
+| `specs/issue-0037-background-settings-form.md` | BDD-BACKGROUND-002、BDD-BACKGROUND-004、BDD-BACKGROUND-007 | 設定Menuと背景設定専用Form、既存Use Caseによる反映と重複防止 |
 | `specs/change-20260920-contextual-network-diagnostics.md` | BDD-DIAGNOSTICS-001 | 正常時の重複診断文言を削除し、Error時だけ表示 |

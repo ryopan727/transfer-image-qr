@@ -20,7 +20,7 @@ public sealed class MainPresenter(
     ITraySettingsUseCase? traySettingsUseCase = null,
     IAutoStartSettingsUseCase? autoStartSettingsUseCase = null,
     IHttpServerEndpoint? serverEndpoint = null,
-    bool serverStartFailed = false)
+    bool serverStartFailed = false) : IBackgroundSettingsPresenter
 {
     private bool _isAdding;
     private bool _isEditingEnabled = true;
@@ -29,6 +29,30 @@ public sealed class MainPresenter(
     private IReadOnlyList<LanAddressOption> _lanAddressOptions = [];
     private IPAddress? _selectedLanAddress;
     private bool _minimizeToTray;
+    private IBackgroundSettingsView? _backgroundSettingsView;
+    private BackgroundViewModel? _currentBackground;
+    private string? _backgroundError;
+
+    public void AttachBackgroundSettingsView(IBackgroundSettingsView view)
+    {
+        _backgroundSettingsView = view ?? throw new ArgumentNullException(nameof(view));
+        if (_currentBackground is null)
+        {
+            LoadBackground();
+            return;
+        }
+
+        view.DisplaySettings(_currentBackground);
+        view.DisplayBackgroundError(_backgroundError);
+    }
+
+    public void DetachBackgroundSettingsView(IBackgroundSettingsView view)
+    {
+        if (ReferenceEquals(_backgroundSettingsView, view))
+        {
+            _backgroundSettingsView = null;
+        }
+    }
 
     public void LoadAutoStartSettings()
     {
@@ -313,13 +337,13 @@ public sealed class MainPresenter(
 
     private void ApplyBackgroundResult(BackgroundCustomizationResult result)
     {
-        view.ApplyBackground(new BackgroundViewModel(
+        _currentBackground = new BackgroundViewModel(
             result.ImagePng,
             result.Settings.OpacityPercent,
             result.Settings.ZoomPercent,
             result.Settings.OffsetX,
-            result.Settings.OffsetY));
-        view.DisplayBackgroundError(result.Error switch
+            result.Settings.OffsetY);
+        _backgroundError = result.Error switch
         {
             BackgroundCustomizationError.None => null,
             BackgroundCustomizationError.ImageUnreadable =>
@@ -327,7 +351,12 @@ public sealed class MainPresenter(
             BackgroundCustomizationError.SettingsCouldNotBeSaved =>
                 "背景設定を保存できません。",
             _ => "背景設定を反映できませんでした。",
-        });
+        };
+
+        view.ApplyBackground(_currentBackground);
+        view.DisplayBackgroundError(_backgroundError);
+        _backgroundSettingsView?.DisplaySettings(_currentBackground);
+        _backgroundSettingsView?.DisplayBackgroundError(_backgroundError);
     }
 
     private void ApplyTraySettingsResult(TraySettingsResult result)

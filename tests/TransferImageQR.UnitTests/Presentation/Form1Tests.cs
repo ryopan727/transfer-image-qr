@@ -145,40 +145,51 @@ public sealed class Form1Tests
     }
 
     [Fact]
-    public void BackgroundControls_ExposeAccessibleAdjustmentAndClearActions()
+    public void BackgroundSettingsMenu_OpensOnlyOneDedicatedFormAndKeepsDraftState()
     {
         RunInSta(() =>
         {
-            var background = new StubBackgroundCustomizationUseCase();
             using var form = new Form1();
-            var presenter = new MainPresenter(
-                form,
-                new StubAddImagesToDraftUseCase(new AddImagesToDraftResult([], 0, [])),
-                new StubEditDraftUseCase(),
-                new StubTransferSessionUseCase(),
-                new StubTransferQrCodeService(),
-                backgroundCustomizationUseCase: background);
-            form.AttachPresenter(presenter);
-            form.ApplyBackground(new BackgroundViewModel(CreateTransparentPng(), 40, 125, 5, -10));
+            using var settingsForm = new Form { Name = "backgroundSettingsForm" };
+            var openCount = 0;
+            form.AttachBackgroundSettingsFormFactory(() =>
+            {
+                openCount++;
+                return settingsForm;
+            });
+            form.AppendDraftImages([
+                new DraftImageViewModel(
+                    Guid.NewGuid(),
+                    @"C:\images\sample.png",
+                    "sample.png",
+                    CreatePng()),
+            ]);
             form.Show();
             System.Windows.Forms.Application.DoEvents();
 
-            var group = Assert.IsType<GroupBox>(Assert.Single(form.Controls.Find("backgroundSettingsGroup", true)));
-            var opacity = Assert.IsType<NumericUpDown>(Assert.Single(form.Controls.Find("backgroundOpacityInput", true)));
-            var zoom = Assert.IsType<NumericUpDown>(Assert.Single(form.Controls.Find("backgroundZoomInput", true)));
-            var offsetX = Assert.IsType<NumericUpDown>(Assert.Single(form.Controls.Find("backgroundOffsetXInput", true)));
-            var clear = Assert.IsType<Button>(Assert.Single(form.Controls.Find("clearBackgroundButton", true)));
+            Assert.Empty(form.Controls.Find("backgroundSettingsGroup", true));
+            var menu = Assert.IsType<MenuStrip>(Assert.Single(form.Controls.Find("mainMenuStrip", true)));
+            var settingsMenu = Assert.IsType<ToolStripMenuItem>(menu.Items["settingsMenuItem"]);
+            var backgroundMenu = Assert.IsType<ToolStripMenuItem>(
+                settingsMenu.DropDownItems["backgroundSettingsMenuItem"]);
+            Assert.Equal("設定", settingsMenu.AccessibleName);
+            Assert.Equal("背景設定", backgroundMenu.AccessibleName);
 
-            Assert.Equal("背景設定", group.AccessibleName);
-            Assert.Equal(40, opacity.Value);
-            Assert.Equal(125, zoom.Value);
-            Assert.Equal(5, offsetX.Value);
-            Assert.True(clear.Enabled);
-            clear.PerformClick();
-            opacity.Value = 65;
+            backgroundMenu.PerformClick();
+            System.Windows.Forms.Application.DoEvents();
+            backgroundMenu.PerformClick();
+            System.Windows.Forms.Application.DoEvents();
 
-            Assert.Equal(65, background.Appearance?.Opacity);
-            Assert.True(background.Cleared);
+            Assert.Equal(1, openCount);
+            Assert.True(settingsForm.Visible);
+            Assert.Same(form, settingsForm.Owner);
+            settingsForm.Close();
+            Assert.Equal("sample.png", Assert.Single(
+                form.Controls.Find("draftListView", true)
+                    .Cast<ListView>()
+                    .Single()
+                    .Items
+                    .Cast<ListViewItem>()).Text);
         });
     }
 

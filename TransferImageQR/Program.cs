@@ -87,6 +87,8 @@ namespace TransferImageQR
                     httpServer,
                     serverStartFailed);
                 mainForm.AttachPresenter(presenter);
+                mainForm.AttachBackgroundSettingsFormFactory(
+                    () => new BackgroundSettingsForm(presenter));
                 presenter.Initialize();
                 presenter.LoadBackground();
                 presenter.LoadTraySettings();

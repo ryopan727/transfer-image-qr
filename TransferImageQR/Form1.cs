@@ -20,16 +20,9 @@ namespace TransferImageQR
         private int _backgroundZoomPercent = 100;
         private int _backgroundOffsetX;
         private int _backgroundOffsetY;
-        private bool _isApplyingBackground;
-
-        private readonly GroupBox backgroundSettingsGroup = new();
-        private readonly Button selectBackgroundButton = new();
-        private readonly Button clearBackgroundButton = new();
-        private readonly NumericUpDown backgroundOpacityInput = new();
-        private readonly NumericUpDown backgroundZoomInput = new();
-        private readonly NumericUpDown backgroundOffsetXInput = new();
-        private readonly NumericUpDown backgroundOffsetYInput = new();
-        private readonly Label backgroundErrorLabel = new();
+        private readonly MenuStrip mainMenuStrip = new();
+        private readonly ToolStripMenuItem settingsMenuItem = new();
+        private readonly ToolStripMenuItem backgroundSettingsMenuItem = new();
         private readonly CheckBox minimizeToTrayCheckBox = new();
         private readonly Label traySettingsErrorLabel = new();
         private readonly CheckBox autoStartCheckBox = new();
@@ -38,11 +31,14 @@ namespace TransferImageQR
         private bool _isApplyingTrayMode;
         private bool _isApplyingAutoStartMode;
         private bool _allowExit;
+        private Func<Form>? _backgroundSettingsFormFactory;
+        private Form? _backgroundSettingsForm;
 
         public Form1()
         {
             InitializeComponent();
-            InitializeBackgroundControls();
+            InitializeMainSurface();
+            InitializeSettingsMenu();
             InitializeTrayControls();
             InitializeAutoStartControls();
             SetStyle(ControlStyles.OptimizedDoubleBuffer | ControlStyles.AllPaintingInWmPaint, true);
@@ -52,6 +48,12 @@ namespace TransferImageQR
         public void AttachPresenter(MainPresenter presenter)
         {
             _presenter = presenter ?? throw new ArgumentNullException(nameof(presenter));
+        }
+
+        public void AttachBackgroundSettingsFormFactory(Func<Form> factory)
+        {
+            _backgroundSettingsFormFactory = factory ??
+                throw new ArgumentNullException(nameof(factory));
         }
 
         public void DisplayLanAddresses(
@@ -275,28 +277,20 @@ namespace TransferImageQR
             _backgroundOffsetX = background.OffsetX;
             _backgroundOffsetY = background.OffsetY;
 
-            _isApplyingBackground = true;
-            try
-            {
-                backgroundOpacityInput.Value = background.OpacityPercent;
-                backgroundZoomInput.Value = background.ZoomPercent;
-                backgroundOffsetXInput.Value = background.OffsetX;
-                backgroundOffsetYInput.Value = background.OffsetY;
-                clearBackgroundButton.Enabled = nextImage is not null;
-            }
-            finally
-            {
-                _isApplyingBackground = false;
-            }
-
             UpdateDraftSurfaceAppearance();
             Invalidate(true);
         }
 
         public void DisplayBackgroundError(string? message)
         {
-            backgroundErrorLabel.Text = message ?? string.Empty;
-            backgroundErrorLabel.Visible = !string.IsNullOrEmpty(message);
+            settingsMenuItem.Text = string.IsNullOrEmpty(message) ? "設定" : "設定 ⚠";
+            settingsMenuItem.ToolTipText = message ?? string.Empty;
+            settingsMenuItem.AccessibleDescription = message;
+            backgroundSettingsMenuItem.ToolTipText = message ?? string.Empty;
+            backgroundSettingsMenuItem.AccessibleDescription = message;
+            backgroundSettingsMenuItem.ForeColor = string.IsNullOrEmpty(message)
+                ? SystemColors.ControlText
+                : Color.Firebrick;
         }
 
         public void SetTrayMode(bool enabled)
@@ -509,7 +503,7 @@ namespace TransferImageQR
             }
         }
 
-        private void InitializeBackgroundControls()
+        private void InitializeMainSurface()
         {
             headingLabel.BackColor = Color.FromArgb(245, 248, 252);
             statusLabel.BackColor = Color.FromArgb(245, 248, 252);
@@ -520,38 +514,39 @@ namespace TransferImageQR
             statusLabel.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point);
             sessionStateLabel.BackColor = Color.FromArgb(245, 248, 252);
             draftCountLabel.BackColor = Color.FromArgb(245, 248, 252);
+            dropPanel.Location = new Point(36, 132);
+            draftCountLabel.Location = new Point(36, 272);
+            removeDraftImageButton.Location = new Point(483, 266);
+            clearDraftButton.Location = new Point(609, 266);
+            createQrButton.Location = new Point(735, 266);
+            newTransferButton.Location = new Point(735, 266);
+            draftListView.Location = new Point(36, 306);
+            draftListView.Size = new Size(828, 374);
+            qrPanel.Location = new Point(36, 306);
+            qrPanel.Size = new Size(828, 374);
+            emptyDraftLabel.Location = new Point(357, 494);
+        }
 
-            backgroundSettingsGroup.Name = "backgroundSettingsGroup";
-            backgroundSettingsGroup.AccessibleName = "背景設定";
-            backgroundSettingsGroup.Text = "背景設定";
-            backgroundSettingsGroup.BackColor = Color.FromArgb(245, 248, 252);
-            backgroundSettingsGroup.Location = new Point(36, 124);
-            backgroundSettingsGroup.Size = new Size(828, 68);
-            backgroundSettingsGroup.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
-            backgroundSettingsGroup.TabIndex = 3;
+        private void InitializeSettingsMenu()
+        {
+            mainMenuStrip.Name = "mainMenuStrip";
+            mainMenuStrip.AccessibleName = "Main Menu";
+            mainMenuStrip.Dock = DockStyle.Top;
 
-            ConfigureButton(selectBackgroundButton, "selectBackgroundButton", "背景を選択", 12, SelectBackgroundButton_Click);
-            ConfigureButton(clearBackgroundButton, "clearBackgroundButton", "背景をクリア", 118, ClearBackgroundButton_Click);
-            selectBackgroundButton.TabIndex = 0;
-            clearBackgroundButton.TabIndex = 1;
-            clearBackgroundButton.Enabled = false;
+            settingsMenuItem.Name = "settingsMenuItem";
+            settingsMenuItem.AccessibleName = "設定";
+            settingsMenuItem.Text = "設定";
 
-            AddSettingInput("不透明度%", backgroundOpacityInput, "backgroundOpacityInput", 232, 0, 100, 35, 2);
-            AddSettingInput("サイズ%", backgroundZoomInput, "backgroundZoomInput", 366, 25, 300, 100, 3);
-            AddSettingInput("横px", backgroundOffsetXInput, "backgroundOffsetXInput", 488, -1000, 1000, 0, 4);
-            AddSettingInput("縦px", backgroundOffsetYInput, "backgroundOffsetYInput", 588, -1000, 1000, 0, 5);
+            backgroundSettingsMenuItem.Name = "backgroundSettingsMenuItem";
+            backgroundSettingsMenuItem.AccessibleName = "背景設定";
+            backgroundSettingsMenuItem.Text = "背景設定";
+            backgroundSettingsMenuItem.Click += BackgroundSettingsMenuItem_Click;
 
-            backgroundErrorLabel.Name = "backgroundErrorLabel";
-            backgroundErrorLabel.AccessibleName = "背景設定エラー";
-            backgroundErrorLabel.AutoEllipsis = true;
-            backgroundErrorLabel.ForeColor = Color.Firebrick;
-            backgroundErrorLabel.Location = new Point(688, 25);
-            backgroundErrorLabel.Size = new Size(128, 32);
-            backgroundErrorLabel.Visible = false;
-
-            backgroundSettingsGroup.Controls.Add(backgroundErrorLabel);
-            Controls.Add(backgroundSettingsGroup);
-            backgroundSettingsGroup.BringToFront();
+            settingsMenuItem.DropDownItems.Add(backgroundSettingsMenuItem);
+            mainMenuStrip.Items.Add(settingsMenuItem);
+            Controls.Add(mainMenuStrip);
+            MainMenuStrip = mainMenuStrip;
+            mainMenuStrip.BringToFront();
         }
 
         private void InitializeTrayControls()
@@ -670,83 +665,24 @@ namespace TransferImageQR
         private void TrayExit_Click(object? sender, EventArgs e) =>
             _presenter?.ExitApplication();
 
-        private void ConfigureButton(
-            Button button,
-            string name,
-            string text,
-            int left,
-            EventHandler clickHandler)
+        private void BackgroundSettingsMenuItem_Click(object? sender, EventArgs e)
         {
-            button.Name = name;
-            button.AccessibleName = text;
-            button.Text = text;
-            button.Location = new Point(left, 25);
-            button.Size = new Size(100, 28);
-            button.UseVisualStyleBackColor = true;
-            button.Click += clickHandler;
-            backgroundSettingsGroup.Controls.Add(button);
-        }
-
-        private void AddSettingInput(
-            string labelText,
-            NumericUpDown input,
-            string name,
-            int left,
-            int minimum,
-            int maximum,
-            int value,
-            int tabIndex)
-        {
-            var label = new Label
+            if (_backgroundSettingsForm is { IsDisposed: false })
             {
-                AutoSize = true,
-                Location = new Point(left, 31),
-                Text = labelText,
-            };
-            input.Name = name;
-            input.AccessibleName = $"背景{labelText}";
-            input.Location = new Point(left + label.PreferredWidth + 4, 27);
-            input.Size = new Size(58, 23);
-            input.Minimum = minimum;
-            input.Maximum = maximum;
-            input.Value = value;
-            input.TabIndex = tabIndex;
-            input.ValueChanged += BackgroundAppearanceInput_ValueChanged;
-            backgroundSettingsGroup.Controls.Add(label);
-            backgroundSettingsGroup.Controls.Add(input);
-        }
-
-        private void SelectBackgroundButton_Click(object? sender, EventArgs e)
-        {
-            using var dialog = new OpenFileDialog
-            {
-                Title = "背景画像を選択",
-                Filter = "画像ファイル (*.jpg;*.jpeg;*.png;*.webp)|*.jpg;*.jpeg;*.png;*.webp",
-                CheckFileExists = true,
-                Multiselect = false,
-            };
-
-            if (dialog.ShowDialog(this) == DialogResult.OK)
-            {
-                _presenter?.SelectBackgroundImage(dialog.FileName);
+                _backgroundSettingsForm.Show();
+                _backgroundSettingsForm.Activate();
+                _backgroundSettingsForm.BringToFront();
+                return;
             }
-        }
 
-        private void ClearBackgroundButton_Click(object? sender, EventArgs e) =>
-            _presenter?.ClearBackground();
-
-        private void BackgroundAppearanceInput_ValueChanged(object? sender, EventArgs e)
-        {
-            if (_isApplyingBackground)
+            if (_backgroundSettingsFormFactory is null)
             {
                 return;
             }
 
-            _presenter?.UpdateBackgroundAppearance(
-                (int)backgroundOpacityInput.Value,
-                (int)backgroundZoomInput.Value,
-                (int)backgroundOffsetXInput.Value,
-                (int)backgroundOffsetYInput.Value);
+            _backgroundSettingsForm = _backgroundSettingsFormFactory();
+            _backgroundSettingsForm.FormClosed += (_, _) => _backgroundSettingsForm = null;
+            _backgroundSettingsForm.Show(this);
         }
 
         private void UpdateDraftButtonState()

@@ -152,15 +152,23 @@ public sealed class MainPresenterTests
             backgroundCustomizationUseCase: background);
 
         sut.LoadBackground();
+        var settingsView = new FakeBackgroundSettingsView();
+        sut.AttachBackgroundSettingsView(settingsView);
         sut.SelectBackgroundImage("oshi.png");
         sut.UpdateBackgroundAppearance(60, 150, 10, -20);
         sut.ClearBackground();
 
         Assert.Equal(4, view.Backgrounds.Count);
+        Assert.Equal(4, settingsView.Backgrounds.Count);
         Assert.Equal("oshi.png", background.SelectedPath);
         Assert.Equal((60, 150, 10, -20), background.Appearance);
         Assert.True(background.Cleared);
         Assert.Contains("読み込めません", view.BackgroundError);
+        Assert.Contains("読み込めません", settingsView.BackgroundError);
+
+        sut.DetachBackgroundSettingsView(settingsView);
+        sut.UpdateBackgroundAppearance(35, 100, 0, 0);
+        Assert.Equal(4, settingsView.Backgrounds.Count);
     }
 
     [Fact]
@@ -632,6 +640,19 @@ public sealed class MainPresenterTests
             RejectedImages.Clear();
             RejectedImages.AddRange(images);
         }
+    }
+
+    private sealed class FakeBackgroundSettingsView : IBackgroundSettingsView
+    {
+        public List<BackgroundViewModel> Backgrounds { get; } = [];
+
+        public string? BackgroundError { get; private set; }
+
+        public void DisplaySettings(BackgroundViewModel background) =>
+            Backgrounds.Add(background);
+
+        public void DisplayBackgroundError(string? message) =>
+            BackgroundError = message;
     }
 
     private sealed class StubEditDraftUseCase(
