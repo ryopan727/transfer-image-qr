@@ -43,6 +43,11 @@ namespace TransferImageQR
             InitializeAutoStartControls();
             SetStyle(ControlStyles.OptimizedDoubleBuffer | ControlStyles.AllPaintingInWmPaint, true);
             SizeChanged += Form1_SizeChanged;
+            ApplicationFonts.ApplyTo(this);
+            if (_trayIcon?.ContextMenuStrip is { } trayMenu)
+            {
+                ApplicationFonts.ApplyTo(trayMenu);
+            }
         }
 
         public void AttachPresenter(MainPresenter presenter)

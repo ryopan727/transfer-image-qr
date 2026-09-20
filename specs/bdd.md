@@ -145,6 +145,24 @@ Scenario: BDD-DIAGNOSTICS-003 消失した元画像を案内する
   And 内部File Pathや例外詳細は表示されない
 ```
 
+## Feature: Desktop UI Font
+
+### Rule: 同梱Fontを優先し、読込失敗でも起動を継続する
+
+```gherkin
+Scenario: BDD-FONT-001 同梱Noto Sans JPをDesktop UIへ適用する
+  Given Noto Sans JPがWindowsへInstallされていない
+  When TransferImageQRを起動する
+  Then Main Windowと背景設定Formが同梱Noto Sans JPで表示される
+  And 見出しと強調表示のFont sizeとBold styleが維持される
+
+Scenario: BDD-FONT-002 同梱Fontを読み込めない場合にFallbackする
+  Given 同梱Font dataが欠落または破損している
+  When TransferImageQRを起動する
+  Then ApplicationはSystem既定Fontで起動を継続する
+  And Draftと転送の操作を継続できる
+```
+
 ## Feature: Main Window背景のカスタマイズ
 
 ### Rule: ローカル画像を安全に背景表示して設定を維持できる
@@ -450,6 +468,8 @@ Scenario: BDD-E2E-002 期限切れ後に新しい転送を開始する
 | BDD-DIAGNOSTICS-001 | Unit / Presentation / Acceptance | 正常時の診断欄非表示、Active転送URL tests | 2026-09-20 |
 | BDD-DIAGNOSTICS-002 | Unit / Presentation / Integration | 起動失敗status、Port競合、継続可能なView state | 2026-09-20 |
 | BDD-DIAGNOSTICS-003 | Integration | File削除後の404 HTMLと情報非露出 | 2026-09-20 |
+| BDD-FONT-001 | Unit / Presentation / Publish | Embedded Resource読込、Form／Control family、Size／Bold、publish Resource tests | 2026-09-20 |
+| BDD-FONT-002 | Unit | 無効Font dataのSystem既定Font Fallback test | 2026-09-20 |
 | BDD-BACKGROUND-001 | Unit / Presentation | Alpha付きPNG decode／pixel描画、D&D半透明面、Draft一覧合成背景 tests | 2026-09-20 |
 | BDD-BACKGROUND-002 | Unit / Presentation | 値正規化、設定保存、描画矩形、Form control tests | 2026-09-20 |
 | BDD-BACKGROUND-003 | Integration / Presentation | JSON round-trip、Presenter初期復元 tests | 2026-09-20 |
@@ -524,4 +544,5 @@ Scenario: BDD-E2E-002 期限切れ後に新しい転送を開始する
 | `specs/issue-0016-mvp-acceptance.md` | 既存MVP Scenario全般、BDD-E2E-001〜002 | Production adapterを横断する自動受入試験と実機手動手順 |
 | `specs/issue-0036-transparent-draft-surfaces.md` | BDD-BACKGROUND-001、BDD-BACKGROUND-006 | D&D領域とDraft一覧の背景透過、可読性、Clear時の復帰 |
 | `specs/issue-0037-background-settings-form.md` | BDD-BACKGROUND-002、BDD-BACKGROUND-004、BDD-BACKGROUND-007 | 設定Menuと背景設定専用Form、既存Use Caseによる反映と重複防止 |
+| `specs/issue-0040-noto-sans-jp.md` | BDD-FONT-001〜002 | 同梱Noto Sans JPのDesktop UI適用と安全なFallback |
 | `specs/change-20260920-contextual-network-diagnostics.md` | BDD-DIAGNOSTICS-001 | 正常時の重複診断文言を削除し、Error時だけ表示 |

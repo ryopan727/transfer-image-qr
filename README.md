@@ -91,6 +91,7 @@ Session作成から5分が経過すると、一覧と画像URLは`410 Gone`に�
 | --- | --- | --- |
 | Language / Runtime | C# / .NET 8 | Application全体 |
 | Desktop UI | Windows Forms | Drag & drop、Draft、QR、設定画面 |
+| Desktop font | Noto Sans JP | Assemblyに埋め込み、OS Install不要の日本語UI Font |
 | HTTP server | ASP.NET Core / Kestrel | LAN内の画像一覧・元画像配信 |
 | Image processing | SkiaSharp 4.152.1 | 画像形式検出、Decode、Thumbnail生成 |
 | QR code | QRCoder 1.8.0 | 転送URLのPNG QRコード生成 |
@@ -120,7 +121,7 @@ dotnet test TransferImageQR.sln --no-build
 
 現在の自動Suiteは次を含みます。
 
-- Unit / Presentation: 104 tests
+- Unit / Presentation: 110 tests
 - Integration: 17 tests
 - Acceptance: 2 tests
 
@@ -190,6 +191,10 @@ Test数は機能追加により増える場合があります。Merge前の品�
 - PR前に`task verify`を成功させ、Test evidenceと残存Riskを記録する。
 
 Bug reportやFeature requestは[GitHub Issues](https://github.com/ryopan727/transfer-image-qr/issues)へお願いします。
+
+## Third-party assets
+
+- `TransferImageQR/Assets/Fonts/NotoSansJP-Variable.ttf`: [Google FontsのNoto Sans JP](https://github.com/google/fonts/tree/main/ofl/notosansjp)。SIL Open Font License 1.1で配布され、同Directoryの[`OFL.txt`](TransferImageQR/Assets/Fonts/OFL.txt)にLicense全文を収録しています。
 
 ## License
 
