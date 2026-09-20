@@ -8,6 +8,8 @@ public interface IMainView
 
     void SetLanAddressSelectionEnabled(bool enabled);
 
+    void DisplayNetworkDiagnostics(NetworkDiagnosticsViewModel diagnostics);
+
     void AppendDraftImages(IReadOnlyCollection<DraftImageViewModel> images);
 
     void SetDraftCount(int count);

@@ -40,7 +40,15 @@ namespace TransferImageQR
                 new CryptographicSessionTokenGenerator(),
                 TimeProvider.System);
             var httpServer = new LanImageHttpServer(transferSession);
-            httpServer.StartAsync().GetAwaiter().GetResult();
+            var serverStartFailed = false;
+            try
+            {
+                httpServer.StartAsync().GetAwaiter().GetResult();
+            }
+            catch (Exception)
+            {
+                serverStartFailed = true;
+            }
             var lanAddressProvider = new SystemLanAddressProvider();
             var transferUrlProvider = new TransferUrlProvider(httpServer);
             var transferQrCode = new TransferQrCodeService(
@@ -75,7 +83,9 @@ namespace TransferImageQR
                     lanAddressProvider,
                     backgroundCustomization,
                     traySettings,
-                    autoStartSettings);
+                    autoStartSettings,
+                    httpServer,
+                    serverStartFailed);
                 mainForm.AttachPresenter(presenter);
                 presenter.Initialize();
                 presenter.LoadBackground();

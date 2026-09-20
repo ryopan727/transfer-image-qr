@@ -15,6 +15,47 @@ namespace TransferImageQR.UnitTests.Presentation;
 public sealed class MainPresenterTests
 {
     [Fact]
+    public void Initialize_DisplaysSelectedEndpointAndRefreshesItAfterAddressChange()
+    {
+        var view = new FakeMainView();
+        var sut = CreatePresenter(
+            view,
+            new StubAddImagesToDraftUseCase(),
+            new StubEditDraftUseCase(),
+            new StubTransferSessionUseCase(),
+            lanAddressProvider: new StubLanAddressProvider(
+                new LanAddressOption(IPAddress.Parse("192.168.1.20"), "Ethernet"),
+                new LanAddressOption(IPAddress.Parse("192.168.1.50"), "Wi-Fi")),
+            serverEndpoint: new StubServerEndpoint(true, 51846));
+
+        sut.Initialize();
+        Assert.Equal("192.168.1.20", view.NetworkDiagnostics?.SelectedAddress);
+        Assert.Equal(51846, view.NetworkDiagnostics?.Port);
+
+        sut.SelectLanAddress("192.168.1.50");
+
+        Assert.Equal("192.168.1.50", view.NetworkDiagnostics?.SelectedAddress);
+    }
+
+    [Fact]
+    public void Initialize_WhenServerStartFailed_DisplaysOnlyGeneralFailureState()
+    {
+        var view = new FakeMainView();
+        var sut = CreatePresenter(
+            view,
+            new StubAddImagesToDraftUseCase(),
+            new StubEditDraftUseCase(),
+            new StubTransferSessionUseCase(),
+            serverEndpoint: new StubServerEndpoint(false, 0),
+            serverStartFailed: true);
+
+        sut.Initialize();
+
+        Assert.True(view.NetworkDiagnostics?.ServerStartFailed);
+        Assert.False(view.NetworkDiagnostics?.ServerRunning);
+    }
+
+    [Fact]
     public void AutoStartSettings_LoadAndChangeUpdateViewAndRegistration()
     {
         var view = new FakeMainView();
@@ -468,7 +509,9 @@ public sealed class MainPresenterTests
         ILanAddressProvider? lanAddressProvider = null,
         IBackgroundCustomizationUseCase? backgroundCustomizationUseCase = null,
         ITraySettingsUseCase? traySettingsUseCase = null,
-        IAutoStartSettingsUseCase? autoStartSettingsUseCase = null) =>
+        IAutoStartSettingsUseCase? autoStartSettingsUseCase = null,
+        IHttpServerEndpoint? serverEndpoint = null,
+        bool serverStartFailed = false) =>
         new(
             view,
             addUseCase,
@@ -478,7 +521,9 @@ public sealed class MainPresenterTests
             lanAddressProvider ?? new StubLanAddressProvider(),
             backgroundCustomizationUseCase,
             traySettingsUseCase,
-            autoStartSettingsUseCase);
+            autoStartSettingsUseCase,
+            serverEndpoint,
+            serverStartFailed);
 
     private sealed class StubAddImagesToDraftUseCase(params AddImagesToDraftResult[] results)
         : IAddImagesToDraftUseCase
@@ -529,6 +574,7 @@ public sealed class MainPresenterTests
         public bool ExitRequested { get; private set; }
         public bool AutoStartEnabled { get; private set; }
         public string? AutoStartError { get; private set; }
+        public NetworkDiagnosticsViewModel? NetworkDiagnostics { get; private set; }
 
         public void AppendDraftImages(IReadOnlyCollection<DraftImageViewModel> images) =>
             AppendedImages.AddRange(images);
@@ -559,6 +605,9 @@ public sealed class MainPresenterTests
 
         public void SetLanAddressSelectionEnabled(bool enabled) =>
             LanAddressSelectionEnabled = enabled;
+
+        public void DisplayNetworkDiagnostics(NetworkDiagnosticsViewModel diagnostics) =>
+            NetworkDiagnostics = diagnostics;
 
         public void ApplyBackground(BackgroundViewModel background) => Backgrounds.Add(background);
 
@@ -643,6 +692,13 @@ public sealed class MainPresenterTests
         : ILanAddressProvider
     {
         public IReadOnlyList<LanAddressOption> GetIPv4Addresses() => options;
+    }
+
+    private sealed class StubServerEndpoint(bool isRunning, int port) : IHttpServerEndpoint
+    {
+        public bool IsRunning { get; } = isRunning;
+
+        public int Port { get; } = port;
     }
 
     private sealed class StubBackgroundCustomizationUseCase : IBackgroundCustomizationUseCase

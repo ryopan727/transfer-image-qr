@@ -35,3 +35,4 @@
 | [issue-0012-system-tray.md](issue-0012-system-tray.md) | Verified | [Issue #12](https://github.com/ryopan727/transfer-image-qr/issues/12) | Keep the app running in the Windows notification area and restore or exit it from the tray |
 | [issue-0013-custom-background.md](issue-0013-custom-background.md) | Verified | [Issue #13](https://github.com/ryopan727/transfer-image-qr/issues/13) | Customize the desktop background image, appearance, persistence, and reset |
 | [issue-0014-windows-auto-start.md](issue-0014-windows-auto-start.md) | Verified | [Issue #14](https://github.com/ryopan727/transfer-image-qr/issues/14) | Register or remove per-user Windows login startup |
+| [issue-0015-transfer-diagnostics.md](issue-0015-transfer-diagnostics.md) | Verified | [Issue #15](https://github.com/ryopan727/transfer-image-qr/issues/15) | Diagnose server startup, LAN endpoint, firewall, and missing source images |
