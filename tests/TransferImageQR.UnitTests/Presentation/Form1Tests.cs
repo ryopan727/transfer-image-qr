@@ -1,4 +1,5 @@
 using System.Net;
+using System.Reflection;
 using System.Runtime.ExceptionServices;
 using System.Windows.Forms;
 using SkiaSharp;
@@ -6,6 +7,7 @@ using TransferImageQR.Application.Backgrounds;
 using TransferImageQR.Application.Drafts;
 using TransferImageQR.Application.Sessions;
 using TransferImageQR.Application.Transfers;
+using TransferImageQR.Application.Tray;
 using TransferImageQR.Domain.Drafts;
 using TransferImageQR.Domain.Sessions;
 using TransferImageQR.Presentation;
@@ -15,6 +17,76 @@ namespace TransferImageQR.UnitTests.Presentation;
 
 public sealed class Form1Tests
 {
+    [Fact]
+    public void TrayMode_CloseHidesWindowAndMenuCanShowAndExit()
+    {
+        RunInSta(() =>
+        {
+            var tray = new StubTraySettingsUseCase(true);
+            using var form = new Form1();
+            var presenter = new MainPresenter(
+                form,
+                new StubAddImagesToDraftUseCase(new AddImagesToDraftResult([], 0, [])),
+                new StubEditDraftUseCase(),
+                new StubTransferSessionUseCase(),
+                new StubTransferQrCodeService(),
+                traySettingsUseCase: tray);
+            form.AttachPresenter(presenter);
+            presenter.LoadTraySettings();
+            form.Show();
+            System.Windows.Forms.Application.DoEvents();
+
+            var checkBox = Assert.IsType<CheckBox>(
+                Assert.Single(form.Controls.Find("minimizeToTrayCheckBox", true)));
+            var trayIcon = GetTrayIcon(form);
+            Assert.True(checkBox.Checked);
+            Assert.True(trayIcon.Visible);
+
+            checkBox.Checked = false;
+            checkBox.Checked = true;
+            Assert.True(tray.SavedValue);
+
+            form.Close();
+            System.Windows.Forms.Application.DoEvents();
+            Assert.False(form.Visible);
+            Assert.False(form.IsDisposed);
+
+            Assert.NotNull(trayIcon.ContextMenuStrip);
+            trayIcon.ContextMenuStrip.Items["showMainWindowMenuItem"]?.PerformClick();
+            System.Windows.Forms.Application.DoEvents();
+            Assert.True(form.Visible);
+
+            trayIcon.ContextMenuStrip.Items["exitApplicationMenuItem"]?.PerformClick();
+            System.Windows.Forms.Application.DoEvents();
+            Assert.True(form.IsDisposed);
+        });
+    }
+
+    [Fact]
+    public void TrayMode_WhenDisabled_CloseDisposesWindow()
+    {
+        RunInSta(() =>
+        {
+            using var form = new Form1();
+            var presenter = new MainPresenter(
+                form,
+                new StubAddImagesToDraftUseCase(new AddImagesToDraftResult([], 0, [])),
+                new StubEditDraftUseCase(),
+                new StubTransferSessionUseCase(),
+                new StubTransferQrCodeService(),
+                traySettingsUseCase: new StubTraySettingsUseCase(false));
+            form.AttachPresenter(presenter);
+            presenter.LoadTraySettings();
+            form.Show();
+            System.Windows.Forms.Application.DoEvents();
+
+            form.Close();
+            System.Windows.Forms.Application.DoEvents();
+
+            Assert.True(form.IsDisposed);
+        });
+    }
+
     [Fact]
     public void BackgroundControls_ExposeAccessibleAdjustmentAndClearActions()
     {
@@ -397,6 +469,12 @@ public sealed class Form1Tests
         }
     }
 
+    private static NotifyIcon GetTrayIcon(Form1 form)
+    {
+        var field = typeof(Form1).GetField("_trayIcon", BindingFlags.Instance | BindingFlags.NonPublic);
+        return Assert.IsType<NotifyIcon>(field?.GetValue(form));
+    }
+
     private sealed class StubAddImagesToDraftUseCase(AddImagesToDraftResult result)
         : IAddImagesToDraftUseCase
     {
@@ -482,5 +560,18 @@ public sealed class Form1Tests
 
         private static BackgroundCustomizationResult Current() =>
             new(BackgroundSettings.Default, null);
+    }
+
+    private sealed class StubTraySettingsUseCase(bool initialValue) : ITraySettingsUseCase
+    {
+        public bool? SavedValue { get; private set; }
+
+        public TraySettingsResult Load() => new(new TraySettings(initialValue));
+
+        public TraySettingsResult SetMinimizeToTray(bool enabled)
+        {
+            SavedValue = enabled;
+            return new TraySettingsResult(new TraySettings(enabled));
+        }
     }
 }

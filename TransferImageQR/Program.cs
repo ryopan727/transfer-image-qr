@@ -11,6 +11,7 @@ using TransferImageQR.Infrastructure.Networking;
 using TransferImageQR.Infrastructure.QrCodes;
 using TransferImageQR.Application.Backgrounds;
 using TransferImageQR.Infrastructure.Settings;
+using TransferImageQR.Application.Tray;
 
 namespace TransferImageQR
 {
@@ -50,6 +51,12 @@ namespace TransferImageQR
             var backgroundCustomization = new BackgroundCustomizationUseCase(
                 new JsonBackgroundSettingsStore(backgroundSettingsPath),
                 new SkiaBackgroundImageLoader());
+            var traySettingsPath = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "TransferImageQR",
+                "tray-settings.json");
+            var traySettings = new TraySettingsUseCase(
+                new JsonTraySettingsStore(traySettingsPath));
 
             try
             {
@@ -61,10 +68,12 @@ namespace TransferImageQR
                     transferSession,
                     transferQrCode,
                     lanAddressProvider,
-                    backgroundCustomization);
+                    backgroundCustomization,
+                    traySettings);
                 mainForm.AttachPresenter(presenter);
                 presenter.Initialize();
                 presenter.LoadBackground();
+                presenter.LoadTraySettings();
                 System.Windows.Forms.Application.Run(mainForm);
             }
             finally

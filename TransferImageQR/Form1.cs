@@ -25,11 +25,17 @@ namespace TransferImageQR
         private readonly NumericUpDown backgroundOffsetXInput = new();
         private readonly NumericUpDown backgroundOffsetYInput = new();
         private readonly Label backgroundErrorLabel = new();
+        private readonly CheckBox minimizeToTrayCheckBox = new();
+        private readonly Label traySettingsErrorLabel = new();
+        private NotifyIcon? _trayIcon;
+        private bool _isApplyingTrayMode;
+        private bool _allowExit;
 
         public Form1()
         {
             InitializeComponent();
             InitializeBackgroundControls();
+            InitializeTrayControls();
             SetStyle(ControlStyles.OptimizedDoubleBuffer | ControlStyles.AllPaintingInWmPaint, true);
         }
 
@@ -265,6 +271,54 @@ namespace TransferImageQR
             backgroundErrorLabel.Visible = !string.IsNullOrEmpty(message);
         }
 
+        public void SetTrayMode(bool enabled)
+        {
+            _isApplyingTrayMode = true;
+            try
+            {
+                minimizeToTrayCheckBox.Checked = enabled;
+                if (_trayIcon is not null)
+                {
+                    _trayIcon.Visible = enabled;
+                }
+            }
+            finally
+            {
+                _isApplyingTrayMode = false;
+            }
+        }
+
+        public void DisplayTraySettingsError(string? message)
+        {
+            traySettingsErrorLabel.Text = message ?? string.Empty;
+            traySettingsErrorLabel.Visible = !string.IsNullOrEmpty(message);
+        }
+
+        public void HideToTray() => Hide();
+
+        public void ShowFromTray()
+        {
+            Show();
+            if (WindowState == FormWindowState.Minimized)
+            {
+                WindowState = FormWindowState.Normal;
+            }
+
+            Activate();
+            BringToFront();
+        }
+
+        public void ExitApplication()
+        {
+            _allowExit = true;
+            if (_trayIcon is not null)
+            {
+                _trayIcon.Visible = false;
+            }
+
+            Close();
+        }
+
         protected override void OnPaintBackground(PaintEventArgs e)
         {
             base.OnPaintBackground(e);
@@ -388,6 +442,87 @@ namespace TransferImageQR
             Controls.Add(backgroundSettingsGroup);
             backgroundSettingsGroup.BringToFront();
         }
+
+        private void InitializeTrayControls()
+        {
+            minimizeToTrayCheckBox.Name = "minimizeToTrayCheckBox";
+            minimizeToTrayCheckBox.AccessibleName = "閉じたときトレイに格納";
+            minimizeToTrayCheckBox.AutoSize = true;
+            minimizeToTrayCheckBox.BackColor = Color.FromArgb(245, 248, 252);
+            minimizeToTrayCheckBox.Location = new Point(340, 90);
+            minimizeToTrayCheckBox.TabIndex = 2;
+            minimizeToTrayCheckBox.Text = "閉じたときトレイに格納";
+            minimizeToTrayCheckBox.CheckedChanged += MinimizeToTrayCheckBox_CheckedChanged;
+
+            traySettingsErrorLabel.Name = "traySettingsErrorLabel";
+            traySettingsErrorLabel.AccessibleName = "常駐設定エラー";
+            traySettingsErrorLabel.AutoEllipsis = true;
+            traySettingsErrorLabel.BackColor = Color.FromArgb(245, 248, 252);
+            traySettingsErrorLabel.Font = new Font("Segoe UI", 8F, FontStyle.Regular, GraphicsUnit.Point);
+            traySettingsErrorLabel.ForeColor = Color.Firebrick;
+            traySettingsErrorLabel.Location = new Point(340, 109);
+            traySettingsErrorLabel.Size = new Size(166, 15);
+            traySettingsErrorLabel.Visible = false;
+
+            var trayMenu = new ContextMenuStrip(components);
+            var showMenuItem = new ToolStripMenuItem("表示")
+            {
+                Name = "showMainWindowMenuItem",
+            };
+            showMenuItem.Click += TrayShow_Click;
+            var exitMenuItem = new ToolStripMenuItem("終了")
+            {
+                Name = "exitApplicationMenuItem",
+            };
+            exitMenuItem.Click += TrayExit_Click;
+            trayMenu.Items.Add(showMenuItem);
+            trayMenu.Items.Add(exitMenuItem);
+
+            _trayIcon = new NotifyIcon(components)
+            {
+                ContextMenuStrip = trayMenu,
+                Icon = SystemIcons.Application,
+                Text = "TransferImageQR",
+                Visible = false,
+            };
+            _trayIcon.DoubleClick += TrayShow_Click;
+
+            Controls.Add(minimizeToTrayCheckBox);
+            Controls.Add(traySettingsErrorLabel);
+            minimizeToTrayCheckBox.BringToFront();
+            traySettingsErrorLabel.BringToFront();
+            FormClosing += Form1_FormClosing;
+        }
+
+        private void MinimizeToTrayCheckBox_CheckedChanged(object? sender, EventArgs e)
+        {
+            if (!_isApplyingTrayMode)
+            {
+                _presenter?.SetMinimizeToTray(minimizeToTrayCheckBox.Checked);
+            }
+        }
+
+        private void Form1_FormClosing(object? sender, FormClosingEventArgs e)
+        {
+            if (_allowExit ||
+                e.CloseReason is CloseReason.WindowsShutDown or
+                    CloseReason.TaskManagerClosing or
+                    CloseReason.ApplicationExitCall)
+            {
+                return;
+            }
+
+            if (_presenter?.RequestWindowClose() == true)
+            {
+                e.Cancel = true;
+            }
+        }
+
+        private void TrayShow_Click(object? sender, EventArgs e) =>
+            _presenter?.ShowMainWindow();
+
+        private void TrayExit_Click(object? sender, EventArgs e) =>
+            _presenter?.ExitApplication();
 
         private void ConfigureButton(
             Button button,

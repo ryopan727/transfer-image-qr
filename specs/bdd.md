@@ -18,7 +18,8 @@
 - Kestrelによる同一LAN向け画像一覧・元画像配信
 - iPhone Safari向け表示、Token検証、期限切れ拒否
 - Main Windowのカスタム背景画像、表示調整、設定永続化
-- MVP-001〜MVP-011とMVP-013で実装済みの振る舞い
+- Windowsシステムトレイ常駐とMain Window再表示・明示終了
+- MVP-001〜MVP-013で実装済みの振る舞い
 
 システムトレイ、自動起動など、未実装Issueの振る舞いは本書の対象外とする。
 
@@ -47,6 +48,41 @@ Scenario: BDD-APP-001 アプリを起動する
   When 利用者がTransferImageQRを起動する
   Then Main Windowが表示される
   And Draftへ画像を追加できる状態になる
+```
+
+## Feature: Windowsシステムトレイ常駐
+
+### Rule: 設定に従ってWindowを隠しTrayから復帰・終了できる
+
+```gherkin
+Scenario: BDD-TRAY-001 Close時にシステムトレイへ格納する
+  Given 「閉じたときトレイに格納」がONでMain Windowが表示されている
+  When 利用者がMain Windowを閉じる
+  Then Main Windowは非表示になる
+  And TransferImageQRはNotifyIconを表示して動作を継続する
+
+Scenario: BDD-TRAY-002 TrayからMain Windowを再表示する
+  Given TransferImageQRがMain Windowを隠してTray常駐している
+  When 利用者がTray IconをDouble-clickするか「表示」を選択する
+  Then Main Windowが通常状態で前面へ表示される
+
+Scenario: BDD-TRAY-003 TrayからApplicationを終了する
+  Given TransferImageQRがTray常駐している
+  When 利用者がTray Menuの「終了」を選択する
+  Then Main WindowとNotifyIconが閉じる
+  And HTTP Serverを含むApplication processが終了する
+
+Scenario: BDD-TRAY-004 設定OFFではClose時に終了する
+  Given 「閉じたときトレイに格納」がOFFでMain Windowが表示されている
+  When 利用者がMain Windowを閉じる
+  Then Main Windowが閉じる
+  And TransferImageQR processが終了する
+
+Scenario: BDD-TRAY-005 再起動後に常駐設定を復元する
+  Given 「閉じたときトレイに格納」をONへ変更して保存している
+  When TransferImageQRを終了して再起動する
+  Then 常駐設定がONで表示される
+  And Close時にTrayへ格納される
 ```
 
 ## Feature: Main Window背景のカスタマイズ
@@ -327,6 +363,11 @@ Scenario: BDD-E2E-002 期限切れ後に新しい転送を開始する
 | BDD Scenario | Test Layer | Test / Evidence | Last Verified |
 | --- | --- | --- | --- |
 | BDD-APP-001 | Build / Runtime smoke | `task verify`; WinForms process・Kestrel起動確認 | 2026-09-20 |
+| BDD-TRAY-001 | Unit / Presentation | 設定反映、FormClosing cancel、NotifyIcon状態 tests | 2026-09-20 |
+| BDD-TRAY-002 | Presentation | Hide後のShow/Normal/Activate tests | 2026-09-20 |
+| BDD-TRAY-003 | Unit / Presentation / Runtime smoke | 明示Exit bypassとProcess終了 tests | 2026-09-20 |
+| BDD-TRAY-004 | Presentation | OFF時のClose完了 test | 2026-09-20 |
+| BDD-TRAY-005 | Unit / Integration / Presentation | JSON round-trip、Presenter初期復元 tests | 2026-09-20 |
 | BDD-BACKGROUND-001 | Unit / Presentation | Alpha付きPNG decode／pixel描画、Form前景面 tests | 2026-09-20 |
 | BDD-BACKGROUND-002 | Unit / Presentation | 値正規化、設定保存、描画矩形、Form control tests | 2026-09-20 |
 | BDD-BACKGROUND-003 | Integration / Presentation | JSON round-trip、Presenter初期復元 tests | 2026-09-20 |
@@ -392,4 +433,5 @@ Scenario: BDD-E2E-002 期限切れ後に新しい転送を開始する
 | `specs/issue-0009-safari-original-image.md` | BDD-IMAGE-001〜003 | 元画像inline配信とRange応答 |
 | `specs/issue-0010-expired-session-page.md` | BDD-SESSION-004, BDD-ACCESS-001〜004, BDD-E2E-002 | 期限切れ拒否、案内画面、再転送 |
 | `specs/issue-0011-lan-interface-selection.md` | BDD-NETWORK-001〜003, BDD-TRANSFER-001〜002 | LAN IPv4候補の表示・選択・保持とQR反映 |
+| `specs/issue-0012-system-tray.md` | BDD-TRAY-001〜005 | Tray常駐設定、Close時格納、再表示、明示終了、永続化 |
 | `specs/issue-0013-custom-background.md` | BDD-BACKGROUND-001〜005 | Main Window背景画像、表示調整、永続化、Clear、復旧 |
