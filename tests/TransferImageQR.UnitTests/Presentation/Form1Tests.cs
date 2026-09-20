@@ -19,6 +19,32 @@ namespace TransferImageQR.UnitTests.Presentation;
 public sealed class Form1Tests
 {
     [Fact]
+    public void NetworkDiagnostics_DisplayEndpointGuidanceAndGeneralStartupFailure()
+    {
+        RunInSta(() =>
+        {
+            using var form = new Form1();
+
+            form.DisplayNetworkDiagnostics(new NetworkDiagnosticsViewModel(
+                true,
+                false,
+                "192.168.1.20",
+                51846));
+
+            var status = Assert.IsType<Label>(Assert.Single(form.Controls.Find("statusLabel", true)));
+            Assert.Contains("192.168.1.20:51846", status.Text);
+            Assert.Contains("同一LAN", status.Text);
+            Assert.Contains("Windows Firewall", status.Text);
+
+            form.DisplayNetworkDiagnostics(new NetworkDiagnosticsViewModel(false, true, null, 0));
+
+            Assert.Contains("HTTPサーバーを起動できません", status.Text);
+            Assert.DoesNotContain("Exception", status.Text);
+            Assert.Equal(Color.Firebrick, status.ForeColor);
+        });
+    }
+
+    [Fact]
     public void AutoStartControl_LoadsAndDelegatesChanges()
     {
         RunInSta(() =>

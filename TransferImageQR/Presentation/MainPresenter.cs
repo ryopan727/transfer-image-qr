@@ -18,7 +18,9 @@ public sealed class MainPresenter(
     ILanAddressProvider? lanAddressProvider = null,
     IBackgroundCustomizationUseCase? backgroundCustomizationUseCase = null,
     ITraySettingsUseCase? traySettingsUseCase = null,
-    IAutoStartSettingsUseCase? autoStartSettingsUseCase = null)
+    IAutoStartSettingsUseCase? autoStartSettingsUseCase = null,
+    IHttpServerEndpoint? serverEndpoint = null,
+    bool serverStartFailed = false)
 {
     private bool _isAdding;
     private bool _isEditingEnabled = true;
@@ -126,6 +128,7 @@ public sealed class MainPresenter(
 
         DisplayLanAddressSelection();
         view.SetLanAddressSelectionEnabled(_isEditingEnabled && _lanAddressOptions.Count > 0);
+        DisplayNetworkDiagnostics();
     }
 
     public void SelectLanAddress(string? address)
@@ -143,6 +146,7 @@ public sealed class MainPresenter(
         if (selected is not null)
         {
             _selectedLanAddress = selected.Address;
+            DisplayNetworkDiagnostics();
         }
     }
 
@@ -299,6 +303,13 @@ public sealed class MainPresenter(
                     $"{option.InterfaceName} — {option.Address}"))
                 .ToArray(),
             _selectedLanAddress?.ToString());
+
+    private void DisplayNetworkDiagnostics() =>
+        view.DisplayNetworkDiagnostics(new NetworkDiagnosticsViewModel(
+            serverEndpoint?.IsRunning == true,
+            serverStartFailed,
+            _selectedLanAddress?.ToString(),
+            serverEndpoint?.Port ?? 0));
 
     private void ApplyBackgroundResult(BackgroundCustomizationResult result)
     {

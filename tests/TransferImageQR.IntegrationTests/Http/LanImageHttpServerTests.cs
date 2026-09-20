@@ -117,6 +117,51 @@ public sealed class LanImageHttpServerTests
     }
 
     [Fact]
+    public async Task StartAsync_WhenPortIsAlreadyBound_FailsWithoutReportingRunning()
+    {
+        var sessionProvider = CreateSessionProvider(new TransferDraft(), new MutableTimeProvider(SessionCreatedAt));
+        await using var first = new LanImageHttpServer(sessionProvider);
+        await first.StartAsync(TestContext.Current.CancellationToken);
+        await using var second = new LanImageHttpServer(sessionProvider, first.Port);
+
+        await Assert.ThrowsAnyAsync<IOException>(
+            () => second.StartAsync(TestContext.Current.CancellationToken));
+
+        Assert.False(second.IsRunning);
+        Assert.Equal(0, second.Port);
+    }
+
+    [Fact]
+    public async Task GetImage_WhenSourceWasDeleted_ReturnsSafeJapaneseNotFoundPage()
+    {
+        using var files = new TemporaryImageDirectory();
+        var filePath = files.Create("missing source.jpg", [0xFF, 0xD8, 0xFF]);
+        var draft = new TransferDraft();
+        var image = draft.Add(filePath);
+        var sessionProvider = CreateSessionProvider(draft, new MutableTimeProvider(SessionCreatedAt));
+        var session = sessionProvider.Create().Session;
+        Assert.NotNull(session);
+        File.Delete(filePath);
+        await using var server = new LanImageHttpServer(sessionProvider);
+        await server.StartAsync(TestContext.Current.CancellationToken);
+        using var client = CreateClient(server.Port);
+
+        var response = await client.GetAsync(
+            $"/transfer/{session.Token}/images/{image.Id}",
+            TestContext.Current.CancellationToken);
+        var html = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        Assert.Equal("text/html", response.Content.Headers.ContentType?.MediaType);
+        Assert.Equal("utf-8", response.Content.Headers.ContentType?.CharSet);
+        Assert.True(response.Headers.CacheControl?.NoStore);
+        Assert.Contains("元画像が見つかりません", html);
+        Assert.Contains("PCで画像を追加し直し", html);
+        Assert.DoesNotContain(filePath, html);
+        Assert.DoesNotContain("Exception", html, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public async Task GetSession_WithActiveSession_ReturnsResponsiveImageGallery()
     {
         using var files = new TemporaryImageDirectory();

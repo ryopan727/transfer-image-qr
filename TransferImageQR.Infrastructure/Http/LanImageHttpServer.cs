@@ -141,9 +141,17 @@ public sealed class LanImageHttpServer(
         }
 
         var image = access.Session?.Images.FirstOrDefault(candidate => candidate.Id == imageId);
-        if (image is null || !File.Exists(image.FilePath) || !TryGetContentType(image.FilePath, out var contentType))
+        if (image is null)
         {
             return Results.NotFound();
+        }
+
+        if (!File.Exists(image.FilePath) || !TryGetContentType(image.FilePath, out var contentType))
+        {
+            return Results.Content(
+                TransferImageUnavailablePageRenderer.Render(),
+                "text/html; charset=utf-8",
+                statusCode: StatusCodes.Status404NotFound);
         }
 
         var contentDisposition = new ContentDispositionHeaderValue("inline")

@@ -20,9 +20,10 @@
 - Main Windowのカスタム背景画像、表示調整、設定永続化
 - Windowsシステムトレイ常駐とMain Window再表示・明示終了
 - Windows Login時のCurrent User自動起動設定
-- MVP-001〜MVP-014で実装済みの振る舞い
+- ネットワーク・転送失敗の利用者向け診断
+- MVP-001〜MVP-015で実装済みの振る舞い
 
-システムトレイ、自動起動など、未実装Issueの振る舞いは本書の対象外とする。
+未実装Issueの振る舞いは本書の対象外とする。
 
 ## Actors / External Systems
 
@@ -115,6 +116,32 @@ Scenario: BDD-AUTOSTART-004 Registry Access失敗を案内する
   When 自動起動状態を読み込むか変更する
   Then 技術例外を表示せず自動起動設定を変更できない旨を表示する
   And Draftと転送の操作は継続できる
+```
+
+## Feature: ネットワーク・転送診断
+
+### Rule: 利用者が安全な情報から代表的な転送失敗を切り分けられる
+
+```gherkin
+Scenario: BDD-DIAGNOSTICS-001 利用中Endpointと接続確認事項を表示する
+  Given HTTP Serverが稼働しLAN IPv4 Addressが選択されている
+  When Main Windowを表示するかLAN IPv4 Addressを変更する
+  Then 選択中IP Addressと実際の配信Portが表示される
+  And 接続できない場合は同一LANとWindows Firewallを確認するよう表示される
+
+Scenario: BDD-DIAGNOSTICS-002 HTTP Server起動失敗を案内する
+  Given KestrelがPort競合等で起動できない
+  When TransferImageQRを起動する
+  Then Main WindowはDraft操作可能な状態で表示される
+  And HTTP Serverを起動できない旨が表示される
+  And 例外型やStack traceは表示されない
+
+Scenario: BDD-DIAGNOSTICS-003 消失した元画像を案内する
+  Given Active Session確定後に対象の元画像が削除または移動されている
+  When 利用者が対象画像URLを開く
+  Then HTTP 404と元画像が見つからない旨の日本語Pageが返る
+  And PCで画像を追加し直すよう案内される
+  And 内部File Pathや例外詳細は表示されない
 ```
 
 ## Feature: Main Window背景のカスタマイズ
@@ -404,6 +431,9 @@ Scenario: BDD-E2E-002 期限切れ後に新しい転送を開始する
 | BDD-AUTOSTART-002 | Unit / Integration / Presentation | Disable、固有value削除 tests | 2026-09-20 |
 | BDD-AUTOSTART-003 | Unit / Integration / Presentation | IsEnabled、起動時反映 tests | 2026-09-20 |
 | BDD-AUTOSTART-004 | Unit / Presentation | Port failure、friendly error tests | 2026-09-20 |
+| BDD-DIAGNOSTICS-001 | Unit / Presentation | Endpoint更新、同一LAN・Firewall案内 tests | 2026-09-20 |
+| BDD-DIAGNOSTICS-002 | Unit / Presentation / Integration | 起動失敗status、Port競合、継続可能なView state | 2026-09-20 |
+| BDD-DIAGNOSTICS-003 | Integration | File削除後の404 HTMLと情報非露出 | 2026-09-20 |
 | BDD-BACKGROUND-001 | Unit / Presentation | Alpha付きPNG decode／pixel描画、Form前景面 tests | 2026-09-20 |
 | BDD-BACKGROUND-002 | Unit / Presentation | 値正規化、設定保存、描画矩形、Form control tests | 2026-09-20 |
 | BDD-BACKGROUND-003 | Integration / Presentation | JSON round-trip、Presenter初期復元 tests | 2026-09-20 |
@@ -472,3 +502,4 @@ Scenario: BDD-E2E-002 期限切れ後に新しい転送を開始する
 | `specs/issue-0012-system-tray.md` | BDD-TRAY-001〜005 | Tray常駐設定、Close時格納、再表示、明示終了、永続化 |
 | `specs/issue-0013-custom-background.md` | BDD-BACKGROUND-001〜005 | Main Window背景画像、表示調整、永続化、Clear、復旧 |
 | `specs/issue-0014-windows-auto-start.md` | BDD-AUTOSTART-001〜004 | Current UserのWindows Login自動起動登録・解除・復元・Error表示 |
+| `specs/issue-0015-transfer-diagnostics.md` | BDD-DIAGNOSTICS-001〜003 | Server起動失敗、配信Endpoint、接続確認事項、消失元画像の診断 |

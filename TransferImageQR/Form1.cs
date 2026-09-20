@@ -85,6 +85,24 @@ namespace TransferImageQR
             lanAddressComboBox.Enabled = enabled &&
                 lanAddressComboBox.SelectedItem is LanAddressViewModel;
 
+        public void DisplayNetworkDiagnostics(NetworkDiagnosticsViewModel diagnostics)
+        {
+            statusLabel.ForeColor = diagnostics.ServerStartFailed
+                ? Color.Firebrick
+                : SystemColors.GrayText;
+            statusLabel.Text = diagnostics switch
+            {
+                { ServerStartFailed: true } =>
+                    "HTTPサーバーを起動できません。使用中のポートやWindows Firewallを確認してください。",
+                { ServerRunning: true, SelectedAddress: not null, Port: > 0 } =>
+                    $"配信先: http://{diagnostics.SelectedAddress}:{diagnostics.Port}  " +
+                    "接続できない場合: 同一LAN / Windows Firewallを確認",
+                { ServerRunning: true } =>
+                    "LAN用IPv4アドレスを取得できません。同一LANへの接続を確認してください。",
+                _ => "HTTPサーバーは停止しています。",
+            };
+        }
+
         public void AppendDraftImages(IReadOnlyCollection<DraftImageViewModel> images)
         {
             foreach (var image in images)
@@ -430,6 +448,11 @@ namespace TransferImageQR
         {
             headingLabel.BackColor = Color.FromArgb(245, 248, 252);
             statusLabel.BackColor = Color.FromArgb(245, 248, 252);
+            statusLabel.AccessibleName = "ネットワーク診断";
+            statusLabel.AutoSize = false;
+            statusLabel.Location = new Point(36, 85);
+            statusLabel.Size = new Size(460, 34);
+            statusLabel.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point);
             sessionStateLabel.BackColor = Color.FromArgb(245, 248, 252);
             draftCountLabel.BackColor = Color.FromArgb(245, 248, 252);
 
