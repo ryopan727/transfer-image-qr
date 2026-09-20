@@ -31,4 +31,14 @@ public interface IMainView
     void ApplyBackground(BackgroundViewModel background);
 
     void DisplayBackgroundError(string? message);
+
+    void SetTrayMode(bool enabled);
+
+    void DisplayTraySettingsError(string? message);
+
+    void HideToTray();
+
+    void ShowFromTray();
+
+    void ExitApplication();
 }

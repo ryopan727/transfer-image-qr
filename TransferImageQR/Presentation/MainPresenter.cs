@@ -4,6 +4,7 @@ using TransferImageQR.Application.Drafts;
 using TransferImageQR.Application.Sessions;
 using TransferImageQR.Domain.Sessions;
 using TransferImageQR.Application.Transfers;
+using TransferImageQR.Application.Tray;
 
 namespace TransferImageQR.Presentation;
 
@@ -14,7 +15,8 @@ public sealed class MainPresenter(
     ITransferSessionUseCase transferSessionUseCase,
     ITransferQrCodeService transferQrCodeService,
     ILanAddressProvider? lanAddressProvider = null,
-    IBackgroundCustomizationUseCase? backgroundCustomizationUseCase = null)
+    IBackgroundCustomizationUseCase? backgroundCustomizationUseCase = null,
+    ITraySettingsUseCase? traySettingsUseCase = null)
 {
     private bool _isAdding;
     private bool _isEditingEnabled = true;
@@ -22,6 +24,38 @@ public sealed class MainPresenter(
     private TransferQrCode? _transferQrCode;
     private IReadOnlyList<LanAddressOption> _lanAddressOptions = [];
     private IPAddress? _selectedLanAddress;
+    private bool _minimizeToTray;
+
+    public void LoadTraySettings()
+    {
+        if (traySettingsUseCase is not null)
+        {
+            ApplyTraySettingsResult(traySettingsUseCase.Load());
+        }
+    }
+
+    public void SetMinimizeToTray(bool enabled)
+    {
+        if (traySettingsUseCase is not null)
+        {
+            ApplyTraySettingsResult(traySettingsUseCase.SetMinimizeToTray(enabled));
+        }
+    }
+
+    public bool RequestWindowClose()
+    {
+        if (!_minimizeToTray)
+        {
+            return false;
+        }
+
+        view.HideToTray();
+        return true;
+    }
+
+    public void ShowMainWindow() => view.ShowFromTray();
+
+    public void ExitApplication() => view.ExitApplication();
 
     public void LoadBackground()
     {
@@ -265,6 +299,15 @@ public sealed class MainPresenter(
                 "背景設定を保存できません。",
             _ => "背景設定を反映できませんでした。",
         });
+    }
+
+    private void ApplyTraySettingsResult(TraySettingsResult result)
+    {
+        _minimizeToTray = result.Settings.MinimizeToTray;
+        view.SetTrayMode(_minimizeToTray);
+        view.DisplayTraySettingsError(result.Error == TraySettingsError.None
+            ? null
+            : "常駐設定を保存できません。");
     }
 
     private static string ToUserMessage(DraftImageRejectionReason reason) =>

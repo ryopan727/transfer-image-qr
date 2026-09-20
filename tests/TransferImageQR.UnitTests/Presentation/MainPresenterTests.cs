@@ -3,6 +3,7 @@ using TransferImageQR.Application.Backgrounds;
 using TransferImageQR.Application.Drafts;
 using TransferImageQR.Application.Sessions;
 using TransferImageQR.Application.Transfers;
+using TransferImageQR.Application.Tray;
 using TransferImageQR.Domain.Drafts;
 using TransferImageQR.Domain.Sessions;
 using TransferImageQR.Presentation;
@@ -12,6 +13,50 @@ namespace TransferImageQR.UnitTests.Presentation;
 
 public sealed class MainPresenterTests
 {
+    [Fact]
+    public void TraySettings_ControlCloseShowAndExitBehavior()
+    {
+        var view = new FakeMainView();
+        var tray = new StubTraySettingsUseCase(true);
+        var sut = CreatePresenter(
+            view,
+            new StubAddImagesToDraftUseCase(),
+            new StubEditDraftUseCase(),
+            new StubTransferSessionUseCase(),
+            traySettingsUseCase: tray);
+
+        sut.LoadTraySettings();
+        var closeWasHandled = sut.RequestWindowClose();
+        sut.ShowMainWindow();
+        sut.ExitApplication();
+        sut.SetMinimizeToTray(false);
+
+        Assert.True(closeWasHandled);
+        Assert.True(view.HiddenToTray);
+        Assert.True(view.ShownFromTray);
+        Assert.True(view.ExitRequested);
+        Assert.False(view.TrayModeEnabled);
+        Assert.False(sut.RequestWindowClose());
+        Assert.False(tray.SavedValue);
+    }
+
+    [Fact]
+    public void TraySettings_WhenSaveFails_DisplaysFriendlyError()
+    {
+        var view = new FakeMainView();
+        var tray = new StubTraySettingsUseCase(false, TraySettingsError.SettingsCouldNotBeSaved);
+        var sut = CreatePresenter(
+            view,
+            new StubAddImagesToDraftUseCase(),
+            new StubEditDraftUseCase(),
+            new StubTransferSessionUseCase(),
+            traySettingsUseCase: tray);
+
+        sut.SetMinimizeToTray(true);
+
+        Assert.Equal("常駐設定を保存できません。", view.TraySettingsError);
+    }
+
     [Fact]
     public void BackgroundCommands_ApplyUseCaseResultsAndFriendlyErrors()
     {
@@ -380,7 +425,8 @@ public sealed class MainPresenterTests
         ITransferSessionUseCase sessionUseCase,
         ITransferQrCodeService? qrCodeService = null,
         ILanAddressProvider? lanAddressProvider = null,
-        IBackgroundCustomizationUseCase? backgroundCustomizationUseCase = null) =>
+        IBackgroundCustomizationUseCase? backgroundCustomizationUseCase = null,
+        ITraySettingsUseCase? traySettingsUseCase = null) =>
         new(
             view,
             addUseCase,
@@ -388,7 +434,8 @@ public sealed class MainPresenterTests
             sessionUseCase,
             qrCodeService ?? new StubTransferQrCodeService(),
             lanAddressProvider ?? new StubLanAddressProvider(),
-            backgroundCustomizationUseCase);
+            backgroundCustomizationUseCase,
+            traySettingsUseCase);
 
     private sealed class StubAddImagesToDraftUseCase(params AddImagesToDraftResult[] results)
         : IAddImagesToDraftUseCase
@@ -432,6 +479,11 @@ public sealed class MainPresenterTests
         public bool LanAddressSelectionEnabled { get; private set; }
         public List<BackgroundViewModel> Backgrounds { get; } = [];
         public string? BackgroundError { get; private set; }
+        public bool TrayModeEnabled { get; private set; }
+        public string? TraySettingsError { get; private set; }
+        public bool HiddenToTray { get; private set; }
+        public bool ShownFromTray { get; private set; }
+        public bool ExitRequested { get; private set; }
 
         public void AppendDraftImages(IReadOnlyCollection<DraftImageViewModel> images) =>
             AppendedImages.AddRange(images);
@@ -466,6 +518,16 @@ public sealed class MainPresenterTests
         public void ApplyBackground(BackgroundViewModel background) => Backgrounds.Add(background);
 
         public void DisplayBackgroundError(string? message) => BackgroundError = message;
+
+        public void SetTrayMode(bool enabled) => TrayModeEnabled = enabled;
+
+        public void DisplayTraySettingsError(string? message) => TraySettingsError = message;
+
+        public void HideToTray() => HiddenToTray = true;
+
+        public void ShowFromTray() => ShownFromTray = true;
+
+        public void ExitApplication() => ExitRequested = true;
 
         public void DisplayRejectedImages(IReadOnlyCollection<RejectedImageViewModel> images)
         {
@@ -567,5 +629,20 @@ public sealed class MainPresenterTests
         private static BackgroundCustomizationResult Result(
             BackgroundCustomizationError error = BackgroundCustomizationError.None) =>
             new(BackgroundSettings.Default, null, error);
+    }
+
+    private sealed class StubTraySettingsUseCase(
+        bool initialValue,
+        TraySettingsError saveError = TraySettingsError.None) : ITraySettingsUseCase
+    {
+        public bool? SavedValue { get; private set; }
+
+        public TraySettingsResult Load() => new(new TraySettings(initialValue));
+
+        public TraySettingsResult SetMinimizeToTray(bool enabled)
+        {
+            SavedValue = enabled;
+            return new TraySettingsResult(new TraySettings(enabled), saveError);
+        }
     }
 }
