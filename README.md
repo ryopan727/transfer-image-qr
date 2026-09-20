@@ -3,6 +3,7 @@
 ![.NET 8](https://img.shields.io/badge/.NET-8.0-512BD4?logo=dotnet)
 ![Platform](https://img.shields.io/badge/platform-Windows-0078D4?logo=windows)
 ![UI](https://img.shields.io/badge/UI-Windows%20Forms-5C2D91)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 Windows PCにある画像を、クラウドへアップロードせず、同じLAN上のiPhoneへQRコードで渡すデスクトップアプリです。
 
@@ -192,4 +193,4 @@ Bug reportやFeature requestは[GitHub Issues](https://github.com/ryopan727/tran
 
 ## License
 
-このRepositoryには現在License fileがありません。利用・改変・再配布条件が明示されるまでは、著作権者の許可なく再利用できるOSS Licenseが付与されているものとして扱わないでください。
+このProjectは[MIT License](LICENSE)で公開されています。
