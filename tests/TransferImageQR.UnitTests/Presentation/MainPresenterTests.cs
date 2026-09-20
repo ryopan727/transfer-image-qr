@@ -4,6 +4,7 @@ using TransferImageQR.Application.Drafts;
 using TransferImageQR.Application.Sessions;
 using TransferImageQR.Application.Transfers;
 using TransferImageQR.Application.Tray;
+using TransferImageQR.Application.AutoStart;
 using TransferImageQR.Domain.Drafts;
 using TransferImageQR.Domain.Sessions;
 using TransferImageQR.Presentation;
@@ -13,6 +14,46 @@ namespace TransferImageQR.UnitTests.Presentation;
 
 public sealed class MainPresenterTests
 {
+    [Fact]
+    public void AutoStartSettings_LoadAndChangeUpdateViewAndRegistration()
+    {
+        var view = new FakeMainView();
+        var autoStart = new StubAutoStartSettingsUseCase(true);
+        var sut = CreatePresenter(
+            view,
+            new StubAddImagesToDraftUseCase(),
+            new StubEditDraftUseCase(),
+            new StubTransferSessionUseCase(),
+            autoStartSettingsUseCase: autoStart);
+
+        sut.LoadAutoStartSettings();
+        sut.SetAutoStartEnabled(false);
+
+        Assert.False(view.AutoStartEnabled);
+        Assert.False(autoStart.SavedValue);
+        Assert.Null(view.AutoStartError);
+    }
+
+    [Fact]
+    public void AutoStartSettings_WhenRegistrationFails_RestoresStateAndDisplaysFriendlyError()
+    {
+        var view = new FakeMainView();
+        var autoStart = new StubAutoStartSettingsUseCase(
+            true,
+            AutoStartSettingsError.RegistrationUnavailable);
+        var sut = CreatePresenter(
+            view,
+            new StubAddImagesToDraftUseCase(),
+            new StubEditDraftUseCase(),
+            new StubTransferSessionUseCase(),
+            autoStartSettingsUseCase: autoStart);
+
+        sut.SetAutoStartEnabled(false);
+
+        Assert.True(view.AutoStartEnabled);
+        Assert.Equal("自動起動設定を変更できません。", view.AutoStartError);
+    }
+
     [Fact]
     public void TraySettings_ControlCloseShowAndExitBehavior()
     {
@@ -426,7 +467,8 @@ public sealed class MainPresenterTests
         ITransferQrCodeService? qrCodeService = null,
         ILanAddressProvider? lanAddressProvider = null,
         IBackgroundCustomizationUseCase? backgroundCustomizationUseCase = null,
-        ITraySettingsUseCase? traySettingsUseCase = null) =>
+        ITraySettingsUseCase? traySettingsUseCase = null,
+        IAutoStartSettingsUseCase? autoStartSettingsUseCase = null) =>
         new(
             view,
             addUseCase,
@@ -435,7 +477,8 @@ public sealed class MainPresenterTests
             qrCodeService ?? new StubTransferQrCodeService(),
             lanAddressProvider ?? new StubLanAddressProvider(),
             backgroundCustomizationUseCase,
-            traySettingsUseCase);
+            traySettingsUseCase,
+            autoStartSettingsUseCase);
 
     private sealed class StubAddImagesToDraftUseCase(params AddImagesToDraftResult[] results)
         : IAddImagesToDraftUseCase
@@ -484,6 +527,8 @@ public sealed class MainPresenterTests
         public bool HiddenToTray { get; private set; }
         public bool ShownFromTray { get; private set; }
         public bool ExitRequested { get; private set; }
+        public bool AutoStartEnabled { get; private set; }
+        public string? AutoStartError { get; private set; }
 
         public void AppendDraftImages(IReadOnlyCollection<DraftImageViewModel> images) =>
             AppendedImages.AddRange(images);
@@ -522,6 +567,10 @@ public sealed class MainPresenterTests
         public void SetTrayMode(bool enabled) => TrayModeEnabled = enabled;
 
         public void DisplayTraySettingsError(string? message) => TraySettingsError = message;
+
+        public void SetAutoStartMode(bool enabled) => AutoStartEnabled = enabled;
+
+        public void DisplayAutoStartError(string? message) => AutoStartError = message;
 
         public void HideToTray() => HiddenToTray = true;
 
@@ -643,6 +692,21 @@ public sealed class MainPresenterTests
         {
             SavedValue = enabled;
             return new TraySettingsResult(new TraySettings(enabled), saveError);
+        }
+    }
+
+    private sealed class StubAutoStartSettingsUseCase(
+        bool currentValue,
+        AutoStartSettingsError error = AutoStartSettingsError.None) : IAutoStartSettingsUseCase
+    {
+        public bool? SavedValue { get; private set; }
+
+        public AutoStartSettingsResult Load() => new(currentValue, error);
+
+        public AutoStartSettingsResult SetEnabled(bool enabled)
+        {
+            SavedValue = enabled;
+            return new AutoStartSettingsResult(error == AutoStartSettingsError.None ? enabled : currentValue, error);
         }
     }
 }

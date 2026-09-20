@@ -36,6 +36,10 @@ public interface IMainView
 
     void DisplayTraySettingsError(string? message);
 
+    void SetAutoStartMode(bool enabled);
+
+    void DisplayAutoStartError(string? message);
+
     void HideToTray();
 
     void ShowFromTray();

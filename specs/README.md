@@ -34,3 +34,4 @@
 | [issue-0011-lan-interface-selection.md](issue-0011-lan-interface-selection.md) | Verified | [Issue #11](https://github.com/ryopan727/transfer-image-qr/issues/11) | Select the LAN IPv4 address used in the transfer QR code |
 | [issue-0012-system-tray.md](issue-0012-system-tray.md) | Verified | [Issue #12](https://github.com/ryopan727/transfer-image-qr/issues/12) | Keep the app running in the Windows notification area and restore or exit it from the tray |
 | [issue-0013-custom-background.md](issue-0013-custom-background.md) | Verified | [Issue #13](https://github.com/ryopan727/transfer-image-qr/issues/13) | Customize the desktop background image, appearance, persistence, and reset |
+| [issue-0014-windows-auto-start.md](issue-0014-windows-auto-start.md) | Verified | [Issue #14](https://github.com/ryopan727/transfer-image-qr/issues/14) | Register or remove per-user Windows login startup |

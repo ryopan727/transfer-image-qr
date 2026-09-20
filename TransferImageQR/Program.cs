@@ -12,6 +12,8 @@ using TransferImageQR.Infrastructure.QrCodes;
 using TransferImageQR.Application.Backgrounds;
 using TransferImageQR.Infrastructure.Settings;
 using TransferImageQR.Application.Tray;
+using TransferImageQR.Application.AutoStart;
+using TransferImageQR.Infrastructure.Windows;
 
 namespace TransferImageQR
 {
@@ -57,6 +59,9 @@ namespace TransferImageQR
                 "tray-settings.json");
             var traySettings = new TraySettingsUseCase(
                 new JsonTraySettingsStore(traySettingsPath));
+            var autoStartSettings = new AutoStartSettingsUseCase(
+                new RegistryAutoStartRegistration(),
+                Environment.ProcessPath);
 
             try
             {
@@ -69,11 +74,13 @@ namespace TransferImageQR
                     transferQrCode,
                     lanAddressProvider,
                     backgroundCustomization,
-                    traySettings);
+                    traySettings,
+                    autoStartSettings);
                 mainForm.AttachPresenter(presenter);
                 presenter.Initialize();
                 presenter.LoadBackground();
                 presenter.LoadTraySettings();
+                presenter.LoadAutoStartSettings();
                 System.Windows.Forms.Application.Run(mainForm);
             }
             finally
