@@ -1,4 +1,5 @@
 using TransferImageQR.Presentation;
+using System.Drawing.Imaging;
 
 namespace TransferImageQR
 {
@@ -9,10 +10,27 @@ namespace TransferImageQR
         private bool _draftEditingEnabled = true;
         private string? _displayedQrUrl;
         private bool _updatingLanAddresses;
+        private Image? _backgroundImage;
+        private int _backgroundOpacityPercent = 35;
+        private int _backgroundZoomPercent = 100;
+        private int _backgroundOffsetX;
+        private int _backgroundOffsetY;
+        private bool _isApplyingBackground;
+
+        private readonly GroupBox backgroundSettingsGroup = new();
+        private readonly Button selectBackgroundButton = new();
+        private readonly Button clearBackgroundButton = new();
+        private readonly NumericUpDown backgroundOpacityInput = new();
+        private readonly NumericUpDown backgroundZoomInput = new();
+        private readonly NumericUpDown backgroundOffsetXInput = new();
+        private readonly NumericUpDown backgroundOffsetYInput = new();
+        private readonly Label backgroundErrorLabel = new();
 
         public Form1()
         {
             InitializeComponent();
+            InitializeBackgroundControls();
+            SetStyle(ControlStyles.OptimizedDoubleBuffer | ControlStyles.AllPaintingInWmPaint, true);
         }
 
         public void AttachPresenter(MainPresenter presenter)
@@ -42,7 +60,10 @@ namespace TransferImageQR
 
                 lanAddressComboBox.DisplayMember = nameof(LanAddressViewModel.DisplayName);
                 lanAddressComboBox.SelectedItem = addresses.FirstOrDefault(
-                    address => string.Equals(address.Address, selectedAddress, StringComparison.Ordinal));
+                    address => string.Equals(
+                        address.Address,
+                        selectedAddress,
+                        StringComparison.Ordinal));
             }
             finally
             {
@@ -202,6 +223,76 @@ namespace TransferImageQR
             _displayedQrUrl = null;
         }
 
+        public void ApplyBackground(BackgroundViewModel background)
+        {
+            Image? nextImage = null;
+            if (background.ImagePng is not null)
+            {
+                using var stream = new MemoryStream(background.ImagePng, writable: false);
+                using var decoded = Image.FromStream(stream);
+                nextImage = new Bitmap(decoded);
+            }
+
+            var previous = _backgroundImage;
+            _backgroundImage = nextImage;
+            previous?.Dispose();
+
+            _backgroundOpacityPercent = background.OpacityPercent;
+            _backgroundZoomPercent = background.ZoomPercent;
+            _backgroundOffsetX = background.OffsetX;
+            _backgroundOffsetY = background.OffsetY;
+
+            _isApplyingBackground = true;
+            try
+            {
+                backgroundOpacityInput.Value = background.OpacityPercent;
+                backgroundZoomInput.Value = background.ZoomPercent;
+                backgroundOffsetXInput.Value = background.OffsetX;
+                backgroundOffsetYInput.Value = background.OffsetY;
+                clearBackgroundButton.Enabled = nextImage is not null;
+            }
+            finally
+            {
+                _isApplyingBackground = false;
+            }
+
+            Invalidate();
+        }
+
+        public void DisplayBackgroundError(string? message)
+        {
+            backgroundErrorLabel.Text = message ?? string.Empty;
+            backgroundErrorLabel.Visible = !string.IsNullOrEmpty(message);
+        }
+
+        protected override void OnPaintBackground(PaintEventArgs e)
+        {
+            base.OnPaintBackground(e);
+            if (_backgroundImage is null || _backgroundOpacityPercent == 0)
+            {
+                return;
+            }
+
+            var destination = Presentation.BackgroundImageLayout.Calculate(
+                ClientSize,
+                _backgroundImage.Size,
+                _backgroundZoomPercent,
+                _backgroundOffsetX,
+                _backgroundOffsetY);
+            using var attributes = new ImageAttributes();
+            var matrix = new ColorMatrix { Matrix33 = _backgroundOpacityPercent / 100f };
+            attributes.SetColorMatrix(matrix, ColorMatrixFlag.Default, ColorAdjustType.Bitmap);
+            e.Graphics.DrawImage(
+                _backgroundImage,
+                destination,
+                0,
+                0,
+                _backgroundImage.Width,
+                _backgroundImage.Height,
+                GraphicsUnit.Pixel,
+                attributes);
+        }
+
         private void DropPanel_DragEnter(object? sender, DragEventArgs e)
         {
             e.Effect = _presenter is not null && e.Data?.GetDataPresent(DataFormats.FileDrop) == true
@@ -256,6 +347,125 @@ namespace TransferImageQR
             {
                 _presenter?.SelectLanAddress(selected.Address);
             }
+        }
+
+        private void InitializeBackgroundControls()
+        {
+            headingLabel.BackColor = Color.FromArgb(245, 248, 252);
+            statusLabel.BackColor = Color.FromArgb(245, 248, 252);
+            sessionStateLabel.BackColor = Color.FromArgb(245, 248, 252);
+            draftCountLabel.BackColor = Color.FromArgb(245, 248, 252);
+
+            backgroundSettingsGroup.Name = "backgroundSettingsGroup";
+            backgroundSettingsGroup.AccessibleName = "背景設定";
+            backgroundSettingsGroup.Text = "背景設定";
+            backgroundSettingsGroup.BackColor = Color.FromArgb(245, 248, 252);
+            backgroundSettingsGroup.Location = new Point(36, 124);
+            backgroundSettingsGroup.Size = new Size(828, 68);
+            backgroundSettingsGroup.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+            backgroundSettingsGroup.TabIndex = 3;
+
+            ConfigureButton(selectBackgroundButton, "selectBackgroundButton", "背景を選択", 12, SelectBackgroundButton_Click);
+            ConfigureButton(clearBackgroundButton, "clearBackgroundButton", "背景をクリア", 118, ClearBackgroundButton_Click);
+            selectBackgroundButton.TabIndex = 0;
+            clearBackgroundButton.TabIndex = 1;
+            clearBackgroundButton.Enabled = false;
+
+            AddSettingInput("不透明度%", backgroundOpacityInput, "backgroundOpacityInput", 232, 0, 100, 35, 2);
+            AddSettingInput("サイズ%", backgroundZoomInput, "backgroundZoomInput", 366, 25, 300, 100, 3);
+            AddSettingInput("横px", backgroundOffsetXInput, "backgroundOffsetXInput", 488, -1000, 1000, 0, 4);
+            AddSettingInput("縦px", backgroundOffsetYInput, "backgroundOffsetYInput", 588, -1000, 1000, 0, 5);
+
+            backgroundErrorLabel.Name = "backgroundErrorLabel";
+            backgroundErrorLabel.AccessibleName = "背景設定エラー";
+            backgroundErrorLabel.AutoEllipsis = true;
+            backgroundErrorLabel.ForeColor = Color.Firebrick;
+            backgroundErrorLabel.Location = new Point(688, 25);
+            backgroundErrorLabel.Size = new Size(128, 32);
+            backgroundErrorLabel.Visible = false;
+
+            backgroundSettingsGroup.Controls.Add(backgroundErrorLabel);
+            Controls.Add(backgroundSettingsGroup);
+            backgroundSettingsGroup.BringToFront();
+        }
+
+        private void ConfigureButton(
+            Button button,
+            string name,
+            string text,
+            int left,
+            EventHandler clickHandler)
+        {
+            button.Name = name;
+            button.AccessibleName = text;
+            button.Text = text;
+            button.Location = new Point(left, 25);
+            button.Size = new Size(100, 28);
+            button.UseVisualStyleBackColor = true;
+            button.Click += clickHandler;
+            backgroundSettingsGroup.Controls.Add(button);
+        }
+
+        private void AddSettingInput(
+            string labelText,
+            NumericUpDown input,
+            string name,
+            int left,
+            int minimum,
+            int maximum,
+            int value,
+            int tabIndex)
+        {
+            var label = new Label
+            {
+                AutoSize = true,
+                Location = new Point(left, 31),
+                Text = labelText,
+            };
+            input.Name = name;
+            input.AccessibleName = $"背景{labelText}";
+            input.Location = new Point(left + label.PreferredWidth + 4, 27);
+            input.Size = new Size(58, 23);
+            input.Minimum = minimum;
+            input.Maximum = maximum;
+            input.Value = value;
+            input.TabIndex = tabIndex;
+            input.ValueChanged += BackgroundAppearanceInput_ValueChanged;
+            backgroundSettingsGroup.Controls.Add(label);
+            backgroundSettingsGroup.Controls.Add(input);
+        }
+
+        private void SelectBackgroundButton_Click(object? sender, EventArgs e)
+        {
+            using var dialog = new OpenFileDialog
+            {
+                Title = "背景画像を選択",
+                Filter = "画像ファイル (*.jpg;*.jpeg;*.png;*.webp)|*.jpg;*.jpeg;*.png;*.webp",
+                CheckFileExists = true,
+                Multiselect = false,
+            };
+
+            if (dialog.ShowDialog(this) == DialogResult.OK)
+            {
+                _presenter?.SelectBackgroundImage(dialog.FileName);
+            }
+        }
+
+        private void ClearBackgroundButton_Click(object? sender, EventArgs e) =>
+            _presenter?.ClearBackground();
+
+        private void BackgroundAppearanceInput_ValueChanged(object? sender, EventArgs e)
+        {
+            if (_isApplyingBackground)
+            {
+                return;
+            }
+
+            _presenter?.UpdateBackgroundAppearance(
+                (int)backgroundOpacityInput.Value,
+                (int)backgroundZoomInput.Value,
+                (int)backgroundOffsetXInput.Value,
+                (int)backgroundOffsetYInput.Value);
         }
 
         private void UpdateDraftButtonState()
