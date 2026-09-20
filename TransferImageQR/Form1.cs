@@ -87,20 +87,19 @@ namespace TransferImageQR
 
         public void DisplayNetworkDiagnostics(NetworkDiagnosticsViewModel diagnostics)
         {
-            statusLabel.ForeColor = diagnostics.ServerStartFailed
-                ? Color.Firebrick
-                : SystemColors.GrayText;
-            statusLabel.Text = diagnostics switch
+            var message = diagnostics switch
             {
                 { ServerStartFailed: true } =>
                     "HTTPサーバーを起動できません。使用中のポートやWindows Firewallを確認してください。",
-                { ServerRunning: true, SelectedAddress: not null, Port: > 0 } =>
-                    $"配信先: http://{diagnostics.SelectedAddress}:{diagnostics.Port}  " +
-                    "接続できない場合: 同一LAN / Windows Firewallを確認",
+                { ServerRunning: true, SelectedAddress: not null, Port: > 0 } => null,
                 { ServerRunning: true } =>
                     "LAN用IPv4アドレスを取得できません。同一LANへの接続を確認してください。",
                 _ => "HTTPサーバーは停止しています。",
             };
+
+            statusLabel.Text = message ?? string.Empty;
+            statusLabel.ForeColor = Color.Firebrick;
+            statusLabel.Visible = message is not null;
         }
 
         public void AppendDraftImages(IReadOnlyCollection<DraftImageViewModel> images)
